@@ -35,3 +35,28 @@ CREATE TABLE IF NOT EXISTS memory_atom (
     ('workspace','role','private')),
   CONSTRAINT ck_conf CHECK (confidence BETWEEN 0 AND 1)
 );
+
+-- memory_conflict -- every detection, benign or not. The ratio of benign to
+-- contradictory detections is itself a credibility signal, so we write a row
+-- for agreement and unrelated verdicts too.
+CREATE TABLE IF NOT EXISTS memory_conflict (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id      UUID        NOT NULL,
+  run_id            UUID,                    -- nullable: see 005
+  incoming_atom_id  UUID,
+  existing_atom_id  UUID        NOT NULL,
+  subject_key       STRING      NOT NULL,
+  detector          STRING      NOT NULL,   -- tier1_structural | tier2_semantic
+  similarity        FLOAT,
+  verdict           STRING      NOT NULL,   -- agreement|refinement|contradiction|unrelated
+  resolution        STRING      NOT NULL,   -- accept|supersede|reinforce|reject|contest
+  policy_rule       STRING,                 -- R1|R2|R3|R4|refinement|agreement|unrelated
+  rationale         STRING,
+  adjudicator_ms    INT,
+  detected_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_detector CHECK (detector IN ('tier1_structural','tier2_semantic')),
+  CONSTRAINT ck_verdict CHECK (verdict IN
+    ('agreement','refinement','contradiction','unrelated')),
+  CONSTRAINT ck_resolution CHECK (resolution IN
+    ('accept','supersede','reinforce','reject','contest'))
+);

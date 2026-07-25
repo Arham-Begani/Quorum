@@ -26,3 +26,28 @@ cd dashboard && npm run build && npx serve out        # or npm run dev
 Have a second terminal ready with `make test-isolation` already scrolled to the
 top, and Claude Code already attached to the MCP server with the queries pasted
 in — an unrehearsed live MCP query on camera is a coin flip.
+
+## Things to say precisely
+
+- **Do not** say "the vector index finds the contradiction" while showing S1.
+  At demo scale the exact `subject_key` lookup does that work. The vector index
+  is what generalises to claims that contradict *without* sharing a key, which is
+  S2. Say that instead, and say it accurately.
+- **Do** say the race window in the spike is artificially widened, and that the
+  control run with it removed produced the same result. Volunteering it is worth
+  more than being asked.
+- **Do** say `txn_only`'s failure is analytically certain, not a surprise. The
+  surprising result is that it is *unavoidable* without a semantic layer.
+- If running without Bedrock, say so on camera. The dashboard already shows the
+  banner; do not talk over it.
+
+## The single most likely judge question
+
+> "Isn't this just the database working as designed?"
+
+> "Yes — that is the middle column, and it still produces the wrong booking.
+> Serializability constrains the order of operations. It says nothing about the
+> meaning of the data they write. Two INSERTs of contradictory facts touch
+> different rows and violate no constraint, so they are trivially serializable in
+> either order. The gap isn't a bug in CockroachDB; it's a layer that doesn't
+> exist yet. That's what Quorum is."

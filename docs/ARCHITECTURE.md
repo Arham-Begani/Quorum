@@ -126,3 +126,18 @@ verdict, resolution, which policy rule fired and why. `action_log` records every
 action with its `required_keys`, gate result and `justifying_atom_ids` — the link
 that lets you say "this booking was made because of exactly these atoms, and
 here is the one that was wrong."
+
+## Invariants and where they are enforced
+
+| | invariant | enforced at |
+|---|---|---|
+| I1 | no network calls inside a transaction | Phase A/B split; tier-1-only in `_commit` |
+| I2 | neighbourhood read and write in one transaction | `QuorumMemory._commit` |
+| I3 | every write path retry-wrapped | `run_txn`, the only commit path |
+| I4 | memory is append-only | supersede SQL + column-scoped `UPDATE` grant |
+| I5 | contested memory never silently resolves | R4 + `_act_gated` + recall flags contested |
+| I6 | every atom carries writer attribution | `NOT NULL` on `writer_agent_id` / `writer_role` |
+| I7 | reads are scoped | `workspace_id` on every query + `_visible_to`; negative test |
+| I8 | one driver, one seed, one agent implementation | `factory.py` + `tools/lint_modes.py` in CI |
+| I9 | determinism where it matters | seeded inventory, scripted turns, temperature 0 |
+| I10 | cost and latency observable | `metrics.snapshot()` in every run report |

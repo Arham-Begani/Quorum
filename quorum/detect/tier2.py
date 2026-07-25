@@ -84,8 +84,9 @@ class Adjudicator:
         except ImportError:
             return OFFLINE_STUB
         try:
+            from ..embed.bedrock import has_bedrock_auth
             session = boto3.session.Session(region_name=self.region)
-            if session.get_credentials() is None:
+            if not has_bedrock_auth(session):
                 return OFFLINE_STUB
             self._client = session.client(
                 "bedrock-runtime",

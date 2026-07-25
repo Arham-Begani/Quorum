@@ -29,6 +29,24 @@ class EmbeddingError(RuntimeError):
     pass
 
 
+def has_bedrock_auth(session) -> bool:
+    """Is there any usable Bedrock credential?
+
+    Two shapes exist. Classic IAM credentials (access key / secret / role), and
+    the newer short-form **Bedrock API key**, which the current console hands
+    out directly and which botocore reads from AWS_BEARER_TOKEN_BEDROCK. The
+    bearer token does NOT show up in session.get_credentials(), so checking
+    only that silently falls back to the offline provider even though Bedrock
+    is perfectly reachable.
+    """
+    if os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "").strip():
+        return True
+    try:
+        return session.get_credentials() is not None
+    except Exception:
+        return False
+
+
 class Embedder:
     def __init__(
         self,
@@ -54,7 +72,7 @@ class Embedder:
             return synthetic.PROVIDER_NAME
         try:
             session = boto3.session.Session(region_name=self.region)
-            if session.get_credentials() is None:
+            if not has_bedrock_auth(session):
                 return synthetic.PROVIDER_NAME
             self._client = session.client("bedrock-runtime")
             return "bedrock_titan"

@@ -13,3 +13,17 @@ __pycache__/
 venv/
 .pytest_cache/
 *.egg-info/
+
+# node / dashboard
+node_modules/
+.next/
+out/
+dist/
+
+# build + run artifacts
+.build/
+runs/
+*.log
+
+# embedding cache
+.cache/

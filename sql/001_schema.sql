@@ -60,3 +60,23 @@ CREATE TABLE IF NOT EXISTS memory_conflict (
   CONSTRAINT ck_resolution CHECK (resolution IN
     ('accept','supersede','reinforce','reject','contest'))
 );
+
+-- action_log -- where memory becomes consequence. justifying_atom_ids is the
+-- link that lets you say "this booking was made because of exactly these
+-- atoms, and here is the one that was wrong."
+CREATE TABLE IF NOT EXISTS action_log (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id        UUID        NOT NULL,
+  run_id              UUID,                  -- nullable: see 005
+  agent_id            STRING      NOT NULL,
+  action_type         STRING      NOT NULL,
+  payload             JSONB       NOT NULL,
+  required_keys       STRING[]    NOT NULL,
+  gate_result         STRING      NOT NULL,
+  justifying_atom_ids UUID[],
+  executed            BOOL        NOT NULL DEFAULT false,
+  outcome             STRING,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_gate CHECK (gate_result IN
+    ('allowed','blocked_contested','blocked_missing','blocked_ambiguous'))
+);

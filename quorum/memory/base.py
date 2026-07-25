@@ -298,3 +298,74 @@ class MemoryClient(ABC):
         if atom.visibility == "role":
             return atom.writer_role == agent.role or "workspace" in agent.visibility_scopes
         return atom.writer_agent_id == agent.agent_id      # private
+
+    def _neighbourhood(self, cur, claim: Claim, vec_literal: str,
+                       k: int | None = None) -> list[Atom]:
+        """Conflict-candidate set: ANN neighbourhood UNION exact subject_key.
+
+        The exact-key branch is not optional. ANN recall is approximate, and a
+        structural match must never be missed because the vector index dropped
+        it from the top-k. The ANN branch is what generalises to claims that
+        contradict WITHOUT sharing a key -- and it is why the vector index has
+        to live in the same transactional domain as the rows. (BUILD.md §4.6)
+
+        Each UNION branch is parenthesised: otherwise the parser binds ORDER BY
+        and LIMIT to the whole union and CockroachDB rejects the statement.
+        """
+        cur.execute(
+            f"""
+            SELECT {ATOM_SELECT}, distance FROM (
+                (SELECT {ATOM_SELECT}, embedding <-> %(vec)s::VECTOR AS distance
+                 FROM memory_atom
+                 WHERE workspace_id = %(ws)s AND valid_to IS NULL
+                   AND status IN ('active','contested')
+                 ORDER BY embedding <-> %(vec)s::VECTOR
+                 LIMIT %(k)s)
+              UNION ALL
+                (SELECT {ATOM_SELECT}, NULL::FLOAT AS distance
+                 FROM memory_atom
+                 WHERE workspace_id = %(ws)s AND valid_to IS NULL
+                   AND status IN ('active','contested')
+                   AND subject_key = %(sk)s)
+            ) AS neighbourhood
+            """,
+            {"vec": vec_literal, "ws": claim.workspace_id,
+             "k": k or self.ann_k, "sk": claim.subject_key},
+        )
+        seen: dict[uuid.UUID, Atom] = {}
+        for row in cur.fetchall():
+            atom = atom_from_row(row, with_distance=True)
+            prev = seen.get(atom.id)
+            # keep whichever copy carries the distance
+            if prev is None or (prev.distance is None and atom.distance is not None):
+                seen[atom.id] = atom
+        return list(seen.values())
+
+    def _insert_atom_params(self, claim: Claim, atom_id: uuid.UUID, vec_literal: str,
+                            status: str = Status.ACTIVE, evidence: int = 1) -> dict:
+        return {
+            "id": atom_id, "ws": claim.workspace_id, "sk": claim.subject_key,
+            "pred": claim.predicate, "text": claim.object_text,
+            "json": json.dumps(claim.object_json) if claim.object_json is not None else None,
+            "vec": vec_literal, "agent": claim.agent_id, "role": claim.role,
+            "conf": claim.confidence, "evidence": evidence, "status": status,
+            "visibility": claim.visibility, "run_id": self.run_id,
+        }
+
+    def _write_conflicts(self, cur, claim: Claim, records) -> None:
+        for rec in records:
+            cur.execute(INSERT_CONFLICT_SQL, {
+                "ws": claim.workspace_id, "run_id": self.run_id,
+                "incoming": rec.incoming_atom_id, "existing": rec.existing_atom_id,
+                "sk": rec.subject_key, "detector": rec.detector,
+                "similarity": rec.similarity, "verdict": rec.verdict,
+                "resolution": rec.resolution, "rule": rec.policy_rule,
+                "rationale": rec.rationale, "adj_ms": rec.adjudicator_ms,
+            })
+
+    def info(self) -> dict:
+        return {"mode": self.mode, "ann_k": self.ann_k,
+                "uses_semantic_layer": self.uses_semantic_layer,
+                "uses_transactions": self.uses_transactions,
+                "has_action_gate": self.has_action_gate,
+                "embedder": self.embedder.info()}

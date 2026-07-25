@@ -128,3 +128,32 @@ def make_pool(
         open=True,
         kwargs={"autocommit": False},
     )
+
+
+def server_version(pool: ConnectionPool) -> str:
+    with pool.connection() as conn:
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute("SELECT version()")
+            row = cur.fetchone()
+    return row[0] if row else "unknown"
+
+
+def explain_connect_failure(exc: BaseException) -> str:
+    """Turn the two connection failures that actually happen into advice."""
+    msg = str(exc)
+    low = msg.lower()
+    hints = []
+    if "certificate" in low or "ssl" in low or "root" in low:
+        hints.append(
+            "SSL/root-certificate problem. On Windows libpq looks for\n"
+            "  %APPDATA%\\postgresql\\root.crt when sslmode=verify-full.\n"
+            "  Either download the cluster CA cert and add\n"
+            "  &sslrootcert=C:/path/to/root.crt to CRDB_URL, or (dev only, and\n"
+            "  say so in the README) drop to sslmode=require."
+        )
+    if "password authentication" in low or "role" in low:
+        hints.append("Credentials rejected — re-copy the connection string from the Cloud console.")
+    if "timeout" in low or "could not translate" in low or "connection refused" in low:
+        hints.append("Host unreachable — check the host/port and that the cluster is awake.")
+    return msg + ("\n\nHint:\n  " + "\n  ".join(hints) if hints else "")

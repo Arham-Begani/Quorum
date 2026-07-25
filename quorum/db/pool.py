@@ -75,6 +75,14 @@ def build_conninfo(
     d = conninfo_to_dict(url)
     existing = (d.get("options") or "").strip()
     ours = f"-c statement_timeout={statement_timeout_ms}"
+    # C-SPANN search effort. CockroachDB defaults to 32; we measured recall@8
+    # against exact nearest neighbours at 30% / 55% / 78% for beam 8 / 32 / 64.
+    # A contradiction detector that misses a candidate fails SILENTLY, which is
+    # the worst failure mode this system has, so we buy recall with latency
+    # rather than the other way round. See docs/CONSISTENCY_MODEL.md §8.
+    beam = os.environ.get("VECTOR_SEARCH_BEAM_SIZE", "64").strip()
+    if beam:
+        ours += f" -c vector_search_beam_size={beam}"
     d["options"] = f"{existing} {ours}".strip()
     d.setdefault("application_name", app_name or os.environ.get("CRDB_APP_NAME", "quorum"))
     if d.get("sslmode") in ("verify-full", "verify-ca") and not d.get("sslrootcert"):

@@ -92,3 +92,42 @@ ORDER BY valid_from;
 > raised on day one."
 
 ---
+
+## 5. "Prove the auditor cannot change anything."
+
+Run it. It must fail.
+
+```sql
+UPDATE memory_atom SET status = 'active' WHERE status = 'contested';
+-- ERROR: user auditor does not have UPDATE privilege on relation memory_atom
+```
+
+---
+
+## 6. Detection quality — is tier 1 carrying the load?
+
+If tier 2 fires on everything, subject-key normalization is broken.
+
+```sql
+SELECT detector, verdict, resolution, policy_rule, count(*)
+FROM memory_conflict
+GROUP BY 1, 2, 3, 4
+ORDER BY count DESC;
+```
+
+---
+
+## 7. The narrowed UPDATE grant, shown live
+
+Enforcing invariant I4 at the database level, not just in application code.
+
+```sql
+SELECT grantee, privilege_type, column_name
+FROM information_schema.column_privileges
+WHERE table_name = 'memory_atom' AND grantee = 'agent_writer'
+ORDER BY column_name;
+```
+
+> "The agent role can only ever update `valid_to`, `superseded_by`, `status`,
+> `evidence_count` and `confidence`. It cannot rewrite what a claim said. The
+> append-only guarantee is a grant, not a convention."

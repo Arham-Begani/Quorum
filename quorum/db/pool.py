@@ -104,3 +104,27 @@ def preflight(conninfo: str, *, connect_timeout: int = 15) -> None:
         with conn.cursor() as cur:
             cur.execute("SELECT 1")
             cur.fetchone()
+
+
+def make_pool(
+    url: str | None = None,
+    *,
+    min_size: int = 2,
+    max_size: int = 8,
+    app_name: str | None = None,
+    statement_timeout_ms: int = DEFAULT_STATEMENT_TIMEOUT_MS,
+    dbname: str | None = None,
+) -> ConnectionPool:
+    conninfo = build_conninfo(
+        url or crdb_url(), app_name=app_name,
+        statement_timeout_ms=statement_timeout_ms, dbname=dbname,
+    )
+    preflight(conninfo)
+    return ConnectionPool(
+        conninfo,
+        min_size=min_size,
+        max_size=max_size,
+        timeout=30.0,
+        open=True,
+        kwargs={"autocommit": False},
+    )

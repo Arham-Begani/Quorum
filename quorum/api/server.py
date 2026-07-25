@@ -166,3 +166,69 @@ def actions(run_id: uuid.UUID | None = None, workspace_id: uuid.UUID | None = No
         params.append(workspace_id)
     sql += " ORDER BY created_at"
     return _json_safe(rows(sql, tuple(params)))
+
+
+@app.get("/timeline/{run_id}")
+def timeline(run_id: uuid.UUID, at: datetime | None = Query(default=None)):
+    """Memory state as it existed at a past instant. The forensic view.
+
+    Runs the query AS OF SYSTEM TIME, which is only possible because the GC TTL
+    was raised at provisioning (sql/003_zone_configs.sql). Outside the GC
+    window CockroachDB refuses the read, and we say so rather than silently
+    returning current state -- which would be the worst possible failure for a
+    forensic tool.
+    """
+    r = rows("SELECT workspace_id, mode, scenario, started_at, ended_at "
+             "FROM run WHERE run_id = %s", (run_id,))
+    if not r:
+        raise HTTPException(404, "run not found")
+    ws = r[0]["workspace_id"]
+
+    if at is None:
+        return {"run": _json_safe(r[0]), "as_of": None,
+                "atoms": atoms(ws), "actions": actions(run_id=run_id)}
+
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=timezone.utc)
+    aost = f"AS OF SYSTEM TIME '{at.isoformat()}'"
+    try:
+        historical = rows(
+            "SELECT id, subject_key, predicate, object_text, object_json, "
+            "writer_agent_id, writer_role, confidence, evidence_count, "
+            "valid_from, valid_to, superseded_by, status FROM memory_atom {AOST} "
+            "WHERE workspace_id = %s ORDER BY valid_from",
+            (ws,), aost=aost)
+    except Exception as exc:
+        detail = str(exc).splitlines()[0]
+        raise HTTPException(
+            400,
+            f"cannot read at {at.isoformat()}: {detail}. This is usually the "
+            f"garbage-collection window: AS OF SYSTEM TIME can only read inside "
+            f"gc.ttlseconds (currently 90000s / ~25h).") from exc
+
+    return {"run": _json_safe(r[0]), "as_of": at.isoformat(),
+            "atoms": _json_safe(historical)}
+
+
+@app.get("/health/memory")
+def memory_health(workspace_id: uuid.UUID | None = None):
+    """Contested set size, retry counts and latency, for the instrument panel."""
+    where = "WHERE workspace_id = %s" if workspace_id else ""
+    params = (workspace_id,) if workspace_id else ()
+    status = rows(f"SELECT status, count(*) AS n FROM memory_atom {where} "
+                  f"{'AND' if where else 'WHERE'} valid_to IS NULL GROUP BY status",
+                  params)
+    detectors = rows("SELECT detector, verdict, resolution, count(*) AS n "
+                     "FROM memory_conflict GROUP BY 1,2,3")
+    gates = rows("SELECT gate_result, count(*) AS n FROM action_log GROUP BY 1")
+    recent = rows("SELECT mode, scenario, report FROM run "
+                  "WHERE report IS NOT NULL ORDER BY started_at DESC LIMIT 6")
+    perf = []
+    for r in recent:
+        rep = r["report"] if isinstance(r["report"], dict) else json.loads(r["report"])
+        perf.append({"mode": r["mode"], "scenario": r["scenario"],
+                     "performance": rep.get("performance", {})})
+    return {"atoms_by_status": _json_safe(status),
+            "detections": _json_safe(detectors),
+            "gate_results": _json_safe(gates),
+            "recent_performance": perf}

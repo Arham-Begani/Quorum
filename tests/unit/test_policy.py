@@ -123,3 +123,46 @@ def test_r4_contests_identical_standing():
 def test_r4_always_matches_so_resolution_is_total():
     ctx = rules.build_ctx(claim(), atom(), Verdict.CONTRADICTION)
     assert rules.r4_contest(ctx) is not None
+
+
+# --- ordering --------------------------------------------------------------
+
+def test_r1_beats_r2_and_r3():
+    """Authority wins even when evidence and confidence favour the other side."""
+    d = resolve(claim(role="booking_agent", conf=0.1),
+                atom(role="research_agent", conf=0.99, evidence=9))
+    assert d.policy_rule == "R1"
+
+
+def test_r2_beats_r3():
+    d = resolve(claim(role="ground_agent", conf=0.99),
+                atom(role="ground_agent", conf=0.1, evidence=7))
+    assert d.policy_rule == "R2"
+
+
+# --- multi-neighbour resolution -------------------------------------------
+
+def test_contest_anywhere_poisons_the_whole_write():
+    c = claim(role="ground_agent", conf=0.7)
+    peer = atom(role="ground_agent", conf=0.7)
+    weaker = atom(role="research_agent", conf=0.5)
+    plan = engine.resolve(c, [
+        (weaker, Verdict.CONTRADICTION, "tier1_structural", 0.9, None),
+        (peer, Verdict.CONTRADICTION, "tier1_structural", 0.9, None),
+    ])
+    assert plan.resolution == Resolution.CONTEST
+    # nothing may be superseded on one neighbour's authority while another
+    # says the fact is disputed
+    assert plan.supersede_ids == ()
+    assert peer.id in plan.contest_ids
+
+
+def test_no_pairs_means_accept():
+    assert engine.resolve(claim(), []).resolution == Resolution.ACCEPT
+
+
+def test_every_pair_produces_a_conflict_record_including_benign_ones():
+    c = claim()
+    plan = engine.resolve(c, [(atom(), Verdict.AGREEMENT, "tier1_structural", 0.99, None)])
+    records = plan.conflict_records(uuid.uuid4())
+    assert len(records) == 1 and records[0].verdict == Verdict.AGREEMENT

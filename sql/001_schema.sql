@@ -90,3 +90,11 @@ CREATE TABLE IF NOT EXISTS agent_registry (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT ck_tier CHECK (authority_tier BETWEEN 1 AND 4)
 );
+
+-- memory_provenance -- edges for derived/summarised memory.
+CREATE TABLE IF NOT EXISTS memory_provenance (
+  derived_atom_id UUID   NOT NULL,
+  source_atom_id  UUID   NOT NULL,
+  relation        STRING NOT NULL,
+  PRIMARY KEY (derived_atom_id, source_atom_id)
+);

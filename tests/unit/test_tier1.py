@@ -75,3 +75,69 @@ def test_range_extraction_and_membership():
     assert rng == (1000.0, 3000.0)
     assert coerce.point_in_range(2400, rng)
     assert not coerce.point_in_range(3200, rng)
+
+
+# --- tier 1 branches -------------------------------------------------------
+
+def test_key_mismatch_is_inconclusive():
+    assert tier1.classify(claim("2026-09-14", key="trip:1:budget.ceiling_usd"),
+                          atom("2026-09-15")) is None
+
+
+def test_equal_scalars_agree():
+    assert tier1.classify(claim("2026-09-14"), atom("2026-09-14")) == Verdict.AGREEMENT
+
+
+def test_equal_scalars_agree_across_spellings():
+    assert tier1.classify(claim("Sep 14 2026"), atom("2026-09-14")) == Verdict.AGREEMENT
+
+
+def test_unequal_equals_scalars_contradict():
+    assert tier1.classify(claim("2026-09-14"), atom("2026-09-15")) == Verdict.CONTRADICTION
+
+
+def test_unequal_non_equals_predicate_is_inconclusive():
+    """Two `prefers` claims can coexist -- a person may prefer several things."""
+    assert tier1.classify(claim("email", predicate="prefers"),
+                          atom("sms", predicate="prefers")) is None
+
+
+def test_point_inside_existing_range_is_refinement():
+    assert tier1.classify(claim(2400), atom({"min": 1000, "max": 3000})) == Verdict.REFINEMENT
+
+
+def test_point_outside_existing_range_contradicts():
+    assert tier1.classify(claim(3200), atom({"min": 1000, "max": 3000})) == Verdict.CONTRADICTION
+
+
+def test_broader_incoming_range_containing_existing_point_agrees():
+    assert tier1.classify(claim({"min": 1000, "max": 3000}), atom(2400)) == Verdict.AGREEMENT
+
+
+def test_concrete_value_over_null_is_refinement():
+    assert tier1.classify(claim("2026-09-14"), atom(None)) == Verdict.REFINEMENT
+
+
+def test_forbids_overlapping_equals_contradicts():
+    assert tier1.classify(claim("email", predicate="forbids"),
+                          atom("email", predicate="equals")) == Verdict.CONTRADICTION
+
+
+def test_forbids_non_overlapping_is_unrelated():
+    assert tier1.classify(claim("sms", predicate="forbids"),
+                          atom("email", predicate="equals")) == Verdict.UNRELATED
+
+
+def test_both_forbids_is_not_the_forbids_branch():
+    assert tier1.classify(claim("email", predicate="forbids"),
+                          atom("sms", predicate="forbids")) is None
+
+
+def test_identical_unstructured_json_agrees():
+    c = claim({"a": 1, "b": 2})
+    a = atom({"a": 1, "b": 2})
+    assert tier1.classify(c, a) == Verdict.AGREEMENT
+
+
+def test_differing_multi_field_json_is_inconclusive():
+    assert tier1.classify(claim({"a": 1, "b": 2}), atom({"a": 9, "b": 8})) is None

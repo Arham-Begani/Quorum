@@ -83,3 +83,48 @@ _register("traveller.price_flexibility", "price flexibility",
           "traveler.price_flexibility", "flexible on price", "price sensitivity")
 _register("traveller.loyalty_program", "loyalty program", "frequent flyer",
           "traveler.loyalty_program")
+
+
+def normalize_attribute(attribute: str) -> tuple[str, bool]:
+    """Return (canonical_attribute, was_mapped)."""
+    slug = _slug(attribute)
+    if not slug:
+        return "unknown", False
+    if slug in ALIAS_MAP:
+        return ALIAS_MAP[slug], True
+    # Unknown but well-formed: pass through normalized so it still groups
+    # consistently, and count it so coverage is measurable.
+    metrics.count_unmapped_attribute(slug)
+    return slug, False
+
+
+def normalize_entity_id(entity_id: str | int) -> str:
+    slug = _slug(entity_id)
+    return slug or "unknown"
+
+
+def normalize(entity_type: str, entity_id: str | int, attribute: str) -> str:
+    """Build the canonical subject_key: 'trip:42:hotel.checkin_date'."""
+    etype = _slug(entity_type) or "entity"
+    eid = normalize_entity_id(entity_id)
+    attr, _ = normalize_attribute(attribute)
+    return f"{etype}:{eid}:{attr}"
+
+
+def parse(subject_key: str) -> tuple[str, str, str]:
+    """Inverse of normalize, for display. Attribute may itself contain ':'-free dots."""
+    parts = subject_key.split(":", 2)
+    if len(parts) != 3:
+        return ("entity", "unknown", subject_key)
+    return (parts[0], parts[1], parts[2])
+
+
+def coverage() -> dict:
+    """How much of what we saw was actually in the alias map."""
+    unmapped = dict(metrics.unmapped_attributes)
+    return {
+        "canonical_attributes": sorted(set(ALIAS_MAP.values())),
+        "alias_count": len(ALIAS_MAP),
+        "unmapped_attributes": unmapped,
+        "unmapped_distinct": len(unmapped),
+    }

@@ -156,3 +156,90 @@ designed, and it still produces the wrong booking.
   and attributable. It cannot make an agent's claim correct.
 
 ---
+
+## 6. Deliberate deviations from the spec
+
+Recorded here because a silent deviation is indistinguishable from a bug.
+
+### 6.1 Rule R3 requires a strict improvement
+
+`CLAUDE.md` §6.3 writes R3 as
+`confidence_incoming >= confidence_existing - CONF_EPSILON`. That fires whenever
+confidences are equal, which makes **R4 unreachable** for two same-tier writers
+with identical evidence and confidence — exactly the S3 case that §8 says must
+resolve to CONTEST, and exactly what §6.3's own instruction ("tune the
+thresholds so at least one canonical scenario lands in R4") asks for.
+
+Implemented as `confidence_incoming > confidence_existing + CONF_EPSILON`.
+S4 (0.80 vs 0.60) supersedes on recency; S3 (0.70 vs 0.70) falls through to
+CONTEST. Both §8 expectations hold.
+
+### 6.2 The action gate lives only in `quorum`
+
+`CLAUDE.md` §6.5 says the gate "still runs" in naive and txn_only but passes.
+Taken literally, the ambiguity check (`len(active) > 1 → BLOCK`) would fire in
+naive too, and naive would refuse the wrong booking — flattering the baseline
+with a safety property it would never actually have.
+
+An action gate is not something a vector store gives you; it is Quorum's
+contribution. So `MemoryClient.act()` defaults to the **ungated** behaviour a
+normal agent stack has (recall, take the most recent answer, act), and
+`QuorumMemory` overrides it with the real gate. Naive and txn_only are measured
+as the systems they actually are.
+
+### 6.3 `wrong_actions` is not decided by a coin flip
+
+An early implementation scored an action wrong only if the value it acted on
+disagreed with ground truth. But when memory holds two contradictory answers,
+which one the agent picks is arbitrary — naive scored 0 wrong actions on S1
+purely because "most recent" happened to be correct.
+
+An action is now wrong if **any** of these hold:
+
+1. a required key had more than one live active answer at action time
+   (*ambiguous memory* — booking a hotel while memory says both Sep 14 and
+   Sep 15 is wrong even if you guess the right night; you had no basis),
+2. the value acted on contradicts declared ground truth,
+3. the payload violates a numeric constraint held in memory (S2's budget).
+
+Test (1) is the primary one precisely because it does not depend on luck.
+
+### 6.4 `run_id` is nullable
+
+`memory_conflict.run_id` and `action_log.run_id` were specified `NOT NULL`. That
+makes the memory client crash when used outside a harness run — and in
+production there is no "run". Relaxed in `sql/005_run_id_nullable.sql`.
+
+---
+
+## 7. Running without Bedrock
+
+The repository runs end to end with no AWS account, using deterministic offline
+stand-ins. **Every run report records which provider produced it**
+(`providers.embedder.provider`, `providers.tier2.provider`), so a result can
+never be mistaken for one produced by real models.
+
+| | with Bedrock | offline |
+|---|---|---|
+| embeddings | Titan v2, real semantic space | hash-based vectors grouped by `subject_key` |
+| tier 2 | Claude classifies the pair | **fails closed** to `contradiction` |
+
+What the offline mode still proves, because none of it depends on the model:
+the serializable write path, tier-1 structural detection, the policy engine,
+supersession, contest, the action gate, retry behaviour, and the forensic view.
+
+What it cannot prove: detection of contradictions between claims that do **not**
+share a subject key. The offline embedder places distinct subject keys
+near-orthogonal by construction, so no candidate pair is ever generated.
+`S2_budget_ceiling` is exactly that case, and it is reported as `NOT TESTED`
+rather than counted as passing or failing — the experiment could not be
+performed. That limitation is also the cleanest demonstration that the vector
+index is load-bearing: remove real embeddings and precisely one scenario stops
+working, and it is the one tier 1 cannot reach.
+
+Note that with the offline stub, `S4_preference_reversal` reaches the correct
+resolution through the fail-closed path rather than through genuine semantic
+judgement. It gets the right answer for the wrong reason. With Bedrock it is a
+real classification.
+
+---

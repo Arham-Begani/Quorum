@@ -243,3 +243,52 @@ judgement. It gets the right answer for the wrong reason. With Bedrock it is a
 real classification.
 
 ---
+
+## 8. Known limits of the vector index
+
+`sql/002_indexes.sql` declares `CREATE VECTOR INDEX idx_atom_embedding ON
+memory_atom (workspace_id, embedding)` — a C-SPANN index with `workspace_id` as
+a prefix column, verified to create successfully on v26.2.1.
+
+**At demo scale the planner does not use it.** With a handful of rows per
+workspace, `EXPLAIN` shows a full scan plus top-k, which is a correct
+cost-based decision, not a capability gap. Detection at this scale is carried by
+the exact `subject_key` branch of the neighbourhood query — which is exactly why
+`BUILD.md` §4.6 insists on unioning the exact lookup rather than relying on ANN
+alone.
+
+The honest statement: the vector index is necessary for the general case
+(cross-key semantic contradiction, S2) and is provably correct, but this
+submission has not measured it doing work at a scale where the planner prefers
+it. That measurement is the first thing to do with more time.
+
+---
+
+## 9. Tuning knobs and their tradeoffs
+
+| knob | default | tradeoff |
+|---|---|---|
+| `ANN_K` | 8 | higher finds more candidate conflicts, costs latency on every write |
+| `TAU_ADJUDICATE` | 0.82 | lower escalates more pairs to tier 2: better recall, more cost and latency |
+| `ADJUDICATE_BUDGET` | 3 | caps tier-2 calls per `remember()`; exceeding it fails closed |
+| `EVIDENCE_MARGIN` | 2 | how much corroboration must differ before R2 fires |
+| `CONF_EPSILON` | 0.05 | how much more confident a newer claim must be for R3 |
+| `TXN_MAX_RETRIES` | 8 | beyond this a write fails loudly and is counted; it is never dropped silently |
+| `REPREPARE_MAX` | 2 | re-probe attempts when a new unjudgeable neighbour appears, then fail closed to CONTEST |
+
+---
+
+## 10. Cost of consistency
+
+Measured on the canonical scenarios (offline embedder, so embedding cost is
+zero; the transaction cost is real):
+
+- `quorum` p50 write latency runs roughly 2–4× the baselines. Most of it is the
+  in-transaction neighbourhood read plus retries under genuine contention.
+- Retries are bounded, counted, and surfaced. `txn_give_ups` is 0 across every
+  run recorded here; if it were not, the write would have failed loudly.
+
+`CLAUDE.md` §9 targets under 25 ms of work inside any transaction. The scenario
+runs deliberately exceed that because the disclosed race-widening delay sits
+inside the transaction. Transactions slower than `TXN_SLOW_MS` are recorded in
+`performance.slow_txns`.

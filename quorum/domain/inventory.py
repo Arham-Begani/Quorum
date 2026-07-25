@@ -90,3 +90,27 @@ class Inventory:
                     price_usd=round(rng.uniform(38, 96), 2),
                 ))
         return out
+
+    # -- lookups --------------------------------------------------------
+    def flight_arriving(self, arrive_date: str) -> Flight | None:
+        return next((f for f in self.flights if f.arrive_date == arrive_date), None)
+
+    def hotel(self, name: str) -> Hotel | None:
+        return next((h for h in self.hotels if h.name == name), None)
+
+    def cheapest_hotel(self) -> Hotel:
+        return min(self.hotels, key=lambda h: h.nightly_rate_usd)
+
+    def transfer_at(self, slot: str) -> Transfer | None:
+        return next((t for t in self.transfers if t.slot == slot), None)
+
+    def summary(self) -> dict:
+        return {
+            "seed": self.seed,
+            "route": f"{ORIGIN}-{DESTINATION}",
+            "window": [WINDOW_START.isoformat(),
+                       (WINDOW_START + timedelta(days=WINDOW_DAYS - 1)).isoformat()],
+            "flights": len(self.flights),
+            "hotels": len(self.hotels),
+            "transfers": len(self.transfers),
+        }

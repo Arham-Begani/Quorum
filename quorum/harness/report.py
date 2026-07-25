@@ -1,0 +1,128 @@
+"""Run the three-mode comparison and emit the report.
+
+    python -m quorum.harness.report --scenario S1_checkin_date
+    python -m quorum.harness.report --all
+    python -m quorum.harness.report --scenario S5_concurrent_race --delay-ms 50
+
+Writes JSON to runs/ and, if S3_BUCKET and AWS credentials are present, to S3.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+from ..db.pool import crdb_url, make_pool, quorum_dbname
+from ..detect.tier2 import Adjudicator
+from ..domain.scenarios import catalog
+from ..domain.scenarios.base import check
+from ..embed.bedrock import Embedder
+from ..memory.factory import MODES
+from . import driver
+
+RUNS_DIR = Path("runs")
+
+
+def compare(scenario_id: str, *, modes=MODES, seed: int, delay_ms: int,
+            pool=None, embedder=None, adjudicator=None) -> dict:
+    plan = catalog.get(scenario_id)
+    reports = {}
+    for mode in modes:
+        rep = driver.run(plan, mode, seed=seed, pool=pool, embedder=embedder,
+                         adjudicator=adjudicator,
+                         cfg={"race_delay_ms": delay_ms})
+        reports[mode] = rep.to_dict()
+    return {"scenario": plan.id, "title": plan.title, "tier": plan.tier,
+            "description": plan.description,
+            "requires_semantic_embeddings": plan.requires_semantic_embeddings,
+            "embedder_offline": bool(embedder is not None and embedder.is_offline),
+            "wrong_action_note": plan.wrong_action_note,
+            "seed": seed, "delay_ms": delay_ms, "modes": reports}
+
+
+def verdicts(result: dict) -> dict:
+    """Did each mode do what the scenario says it should?
+
+    A scenario that needs real semantic embeddings, run with the offline
+    embedder, is reported as `blocked` rather than `pass` or `fail`. It has not
+    been shown to work and it has not been shown to be broken -- the experiment
+    could not be performed. Counting it either way would be dishonest.
+    """
+    plan = catalog.get(result["scenario"])
+    offline = result.get("embedder_offline", False)
+    unavailable = plan.requires_semantic_embeddings and offline
+    out = {}
+    for mode, rep in result["modes"].items():
+        exp = plan.expectations.get(mode)
+        if exp is None:
+            continue
+        a = rep["anomalies"]
+        checks = {
+            "contradictory_active_pairs": check(exp.contradictory_active_pairs,
+                                                a["contradictory_active_pairs"]),
+            "wrong_actions": check(exp.wrong_actions, a["wrong_actions"]),
+            "blocked_actions": check(exp.blocked_actions, a["blocked_actions"]),
+        }
+        passed = all(checks.values())
+        # Ask the CLIENT whether it depends on the semantic layer rather than
+        # asking which mode it is. Modes without detection have expectations
+        # that remain meaningful offline. [I8]
+        semantic = rep.get("memory", {}).get("uses_semantic_layer", False)
+        blocked = unavailable and semantic and not passed
+        out[mode] = {"pass": passed, "blocked": blocked, "checks": checks,
+                     "note": exp.note}
+    return out
+
+
+def print_comparison(result: dict) -> None:
+    plan = catalog.get(result["scenario"])
+    print("\n" + "=" * 82)
+    print(f"{plan.id} — {plan.title}   [{plan.tier}]")
+    print("=" * 82)
+    print(f"  {plan.description}")
+    if plan.requires_semantic_embeddings:
+        print("\n  NOTE: the conflicting claims do not share a subject_key, so this")
+        print("        scenario requires real semantic embeddings (Bedrock Titan).")
+    print()
+    header = (f"{'mode':<10}{'contradictory':<15}{'wrong':<8}{'blocked':<9}"
+              f"{'contested':<11}{'40001':<8}{'p50ms':<8}{'expected?'}")
+    print(header)
+    print("-" * 82)
+    vs = verdicts(result)
+    for mode in MODES:
+        rep = result["modes"].get(mode)
+        if not rep:
+            continue
+        a, p = rep["anomalies"], rep["performance"]
+        v = vs.get(mode, {})
+        status = "BLOCKED" if v.get("blocked") else ("PASS" if v.get("pass") else "FAIL")
+        print(f"{mode:<10}{a['contradictory_active_pairs']:<15}{a['wrong_actions']:<8}"
+              f"{a['blocked_actions']:<9}{a['contested_atoms']:<11}"
+              f"{p['txn_retries']:<8}{p['p50_write_ms']:<8}"
+              f"{status}")
+    print()
+    for mode in MODES:
+        v = vs.get(mode)
+        if not v:
+            continue
+        if v.get("blocked"):
+            print(f"  {mode}: NOT TESTED — needs real semantic embeddings; the offline")
+            print(f"            embedder cannot place distinct subject keys near each")
+            print(f"            other, so tier 2 never fires. Expected: {v['note']}")
+        elif not v["pass"]:
+            failed = [k for k, ok in v["checks"].items() if not ok]
+            print(f"  {mode}: FAILED on {', '.join(failed)} — expected: {v['note']}")
+        else:
+            print(f"  {mode}: {v['note']}")
+
+    conflicts = result["modes"].get("quorum", {}).get("conflicts", {})
+    if conflicts.get("detected"):
+        print(f"\n  quorum detections: {conflicts['detected']} "
+              f"(tier1={conflicts['tier1']}, tier2={conflicts['tier2']}) "
+              f"resolutions={conflicts['resolutions']} rules={conflicts['policy_rules']}")

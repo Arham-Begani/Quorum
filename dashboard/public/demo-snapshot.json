@@ -1,0 +1,3925 @@
+{
+  "generated_at": "2026-07-25T12:49:22.435253+00:00",
+  "cluster": "CockroachDB CCL v26.2.1 (x86_64-pc-linux-gnu, built 2026/05/21 21:07:32, go1.25.5)",
+  "providers": {
+    "embedder": {
+      "provider": "synthetic_offline",
+      "model_id": null,
+      "dim": 1024,
+      "region": null,
+      "cache": {
+        "in_memory": 0,
+        "dir": ".cache\\embeddings",
+        "enabled": true
+      }
+    },
+    "tier2": {
+      "provider": "offline_stub",
+      "model_id": "# confirm what is enabled in YOUR region",
+      "prompt_version": "v1",
+      "per_claim_budget": 3,
+      "run_ceiling": 200,
+      "calls_this_run": 0
+    }
+  },
+  "modes": [
+    "naive",
+    "txn_only",
+    "quorum"
+  ],
+  "scenarios": [
+    {
+      "id": "S1_checkin_date",
+      "title": "Check-in date contradiction",
+      "tier": "tier1",
+      "description": "The lodging agent plans a check-in for Sep 14. The booking agent then reports the CONFIRMED itinerary, whose flight lands on Sep 15. Two structurally unrelated rows, both 'currently true', and only one of them can be.",
+      "wrong_action_note": "hotel booked for the wrong night; guest arrives to no room",
+      "requires_semantic_embeddings": false,
+      "expectations": {
+        "naive": {
+          "contradictory_active_pairs": ">0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "both dates appended; books the stale Sep 14 night"
+        },
+        "txn_only": {
+          "contradictory_active_pairs": ">0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "serializable and anomaly-free, and still books Sep 14"
+        },
+        "quorum": {
+          "contradictory_active_pairs": "0",
+          "wrong_actions": "0",
+          "blocked_actions": "0",
+          "note": "R1: booking_agent (t1) supersedes lodging_agent (t3)"
+        }
+      },
+      "verdicts": {
+        "naive": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "both dates appended; books the stale Sep 14 night"
+        },
+        "txn_only": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "serializable and anomaly-free, and still books Sep 14"
+        },
+        "quorum": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "R1: booking_agent (t1) supersedes lodging_agent (t3)"
+        }
+      },
+      "modes": {
+        "naive": {
+          "run_id": "2835fe71-c7ce-495e-99c9-93385fe4d7ce",
+          "workspace_id": "65b01795-f06d-4836-a1ed-03cd551827b8",
+          "started_at": "2026-07-25T12:48:18.389828+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 1,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [
+                  {
+                    "a": "07639865-9405-4050-8bce-04243ce94f3a",
+                    "a_text": "check-in is 2026-09-14",
+                    "b": "f56d8abf-07a6-4b80-abe8-41d3f36414d9",
+                    "b_text": "confirmed check-in is 2026-09-15",
+                    "subject_key": "trip:1:hotel.checkin_date"
+                  }
+                ],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "action_id": "4708b2df-7a96-4bd8-8dfc-7e4b886546a7",
+                    "action_type": "book_hotel",
+                    "live_answers": 2,
+                    "reason": "ambiguous_memory",
+                    "subject_key": "trip:1:hotel.checkin_date"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 0.61,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": ">0",
+              "note": "both dates appended; books the stale Sep 14 night",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 2
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "naive",
+              "uses_semantic_layer": false,
+              "uses_transactions": false
+            },
+            "mode": "naive",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 200.8,
+              "p95_write_ms": 220.0,
+              "p99_write_ms": 220.0,
+              "retries_by_label": {},
+              "slow_txns": [],
+              "txn_count": 0,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 2
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "2835fe71-c7ce-495e-99c9-93385fe4d7ce",
+            "scenario": "S1_checkin_date",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 220.0,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "lodging plans Sep 14",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "booking-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 200.8,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "booking confirms Sep 15",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "f56d8abf-07a6-4b80-abe8-41d3f36414d9"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "book the hotel",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "65b01795-f06d-4836-a1ed-03cd551827b8"
+          },
+          "atoms": [
+            {
+              "id": "07639865-9405-4050-8bce-04243ce94f3a",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-14",
+              "object_json": {
+                "date": "2026-09-14"
+              },
+              "writer_agent_id": "lodging-1",
+              "writer_role": "lodging_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:18.612463+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "f56d8abf-07a6-4b80-abe8-41d3f36414d9",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "confirmed check-in is 2026-09-15",
+              "object_json": {
+                "date": "2026-09-15"
+              },
+              "writer_agent_id": "booking-1",
+              "writer_role": "booking_agent",
+              "confidence": 0.95,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:18.830220+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "lodging-1",
+              "action_type": "book_hotel",
+              "payload": {
+                "hotel": "Belem Garden Inn",
+                "resolved": {
+                  "trip:1:hotel.checkin_date": {
+                    "date": "2026-09-15"
+                  }
+                }
+              },
+              "required_keys": [
+                "trip:1:hotel.checkin_date"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "f56d8abf-07a6-4b80-abe8-41d3f36414d9"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:18.993210+00:00"
+            }
+          ]
+        },
+        "txn_only": {
+          "run_id": "70abff0a-4f27-4355-8a0a-36f0a58c6d46",
+          "workspace_id": "e903d9ea-36ab-4575-bd4e-a6c618aa9482",
+          "started_at": "2026-07-25T12:48:20.234697+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 1,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [
+                  {
+                    "a": "8d8a945a-ed96-4d29-abb0-b6ae55f3776a",
+                    "a_text": "check-in is 2026-09-14",
+                    "b": "c86a610f-5d95-4a7a-9b84-cfd970450eca",
+                    "b_text": "confirmed check-in is 2026-09-15",
+                    "subject_key": "trip:1:hotel.checkin_date"
+                  }
+                ],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "action_id": "0216f32f-b2a9-478d-8101-8d73f57d85ea",
+                    "action_type": "book_hotel",
+                    "live_answers": 2,
+                    "reason": "ambiguous_memory",
+                    "subject_key": "trip:1:hotel.checkin_date"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 0.87,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": ">0",
+              "note": "serializable and anomaly-free, and still books Sep 14",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 2
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "txn_only",
+              "uses_semantic_layer": false,
+              "uses_transactions": true
+            },
+            "mode": "txn_only",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 215.3,
+              "p95_write_ms": 295.4,
+              "p99_write_ms": 295.4,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 294.6
+                },
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 214.6
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 2
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "70abff0a-4f27-4355-8a0a-36f0a58c6d46",
+            "scenario": "S1_checkin_date",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 295.4,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "lodging plans Sep 14",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "booking-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 215.3,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "booking confirms Sep 15",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "c86a610f-5d95-4a7a-9b84-cfd970450eca"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "book the hotel",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "e903d9ea-36ab-4575-bd4e-a6c618aa9482"
+          },
+          "atoms": [
+            {
+              "id": "8d8a945a-ed96-4d29-abb0-b6ae55f3776a",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-14",
+              "object_json": {
+                "date": "2026-09-14"
+              },
+              "writer_agent_id": "lodging-1",
+              "writer_role": "lodging_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:20.408200+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "c86a610f-5d95-4a7a-9b84-cfd970450eca",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "confirmed check-in is 2026-09-15",
+              "object_json": {
+                "date": "2026-09-15"
+              },
+              "writer_agent_id": "booking-1",
+              "writer_role": "booking_agent",
+              "confidence": 0.95,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:20.689137+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "lodging-1",
+              "action_type": "book_hotel",
+              "payload": {
+                "hotel": "Belem Garden Inn",
+                "resolved": {
+                  "trip:1:hotel.checkin_date": {
+                    "date": "2026-09-15"
+                  }
+                }
+              },
+              "required_keys": [
+                "trip:1:hotel.checkin_date"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "c86a610f-5d95-4a7a-9b84-cfd970450eca"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:20.905319+00:00"
+            }
+          ]
+        },
+        "quorum": {
+          "run_id": "ad83a34c-5033-4039-9df2-2e7eb0dd2b2d",
+          "workspace_id": "ffcf3375-2d72-404c-ad85-8c03c17fb6d2",
+          "started_at": "2026-07-25T12:48:21.885668+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 0,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [
+                  {
+                    "count": 1,
+                    "detector": "tier1_structural",
+                    "policy_rule": "R1",
+                    "resolution": "supersede",
+                    "verdict": "contradiction"
+                  }
+                ],
+                "contradictory_pairs": [],
+                "stale_reads": [],
+                "wrong_actions": []
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 0
+            },
+            "conflicts": {
+              "detected": 1,
+              "policy_rules": {
+                "R1": 1
+              },
+              "resolutions": {
+                "supersede": 1
+              },
+              "tier1": 1,
+              "tier2": 0,
+              "verdicts": {
+                "contradiction": 1
+              }
+            },
+            "duration_s": 1.64,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": "0",
+              "note": "R1: booking_agent (t1) supersedes lodging_agent (t3)",
+              "wrong_actions": "0"
+            },
+            "memory": {
+              "adjudicator": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              },
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 2
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": true,
+              "mode": "quorum",
+              "reprepare_max": 2,
+              "tau_adjudicate": 0.82,
+              "uses_semantic_layer": true,
+              "uses_transactions": true
+            },
+            "mode": "quorum",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 714.9,
+              "p95_write_ms": 728.9,
+              "p99_write_ms": 728.9,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 511.0
+                },
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 518.8
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 2
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "ad83a34c-5033-4039-9df2-2e7eb0dd2b2d",
+            "scenario": "S1_checkin_date",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 714.9,
+                  "policy_rule": null,
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "lodging plans Sep 14",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "booking-1",
+                "detail": {
+                  "conflicts": [
+                    {
+                      "adjudicator_ms": null,
+                      "detector": "tier1_structural",
+                      "existing_atom_id": "8fa5bfcb-5312-489d-9af0-2ac4a91301ad",
+                      "incoming_atom_id": "6382a24e-62b2-437b-979d-1c541fccccc6",
+                      "policy_rule": "R1",
+                      "rationale": "Incoming writer booking_agent (tier 1) outranks lodging_agent (tier 3).",
+                      "resolution": "supersede",
+                      "similarity": 0.9248489364981651,
+                      "subject_key": "trip:1:hotel.checkin_date",
+                      "verdict": "contradiction"
+                    }
+                  ],
+                  "error": null,
+                  "latency_ms": 728.9,
+                  "policy_rule": "R1",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "booking confirms Sep 15",
+                "outcome": "supersede"
+              },
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "6382a24e-62b2-437b-979d-1c541fccccc6"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "book the hotel",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "ffcf3375-2d72-404c-ad85-8c03c17fb6d2"
+          },
+          "atoms": [
+            {
+              "id": "8fa5bfcb-5312-489d-9af0-2ac4a91301ad",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-14",
+              "object_json": {
+                "date": "2026-09-14"
+              },
+              "writer_agent_id": "lodging-1",
+              "writer_role": "lodging_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:22.265315+00:00",
+              "valid_to": "2026-07-25T12:48:22.989317+00:00",
+              "superseded_by": "6382a24e-62b2-437b-979d-1c541fccccc6",
+              "status": "superseded"
+            },
+            {
+              "id": "6382a24e-62b2-437b-979d-1c541fccccc6",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "confirmed check-in is 2026-09-15",
+              "object_json": {
+                "date": "2026-09-15"
+              },
+              "writer_agent_id": "booking-1",
+              "writer_role": "booking_agent",
+              "confidence": 0.95,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:22.989317+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [
+            {
+              "incoming_atom_id": "6382a24e-62b2-437b-979d-1c541fccccc6",
+              "existing_atom_id": "8fa5bfcb-5312-489d-9af0-2ac4a91301ad",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "detector": "tier1_structural",
+              "similarity": 0.9248489364981651,
+              "verdict": "contradiction",
+              "resolution": "supersede",
+              "policy_rule": "R1",
+              "rationale": "Incoming writer booking_agent (tier 1) outranks lodging_agent (tier 3).",
+              "adjudicator_ms": null,
+              "detected_at": "2026-07-25T12:48:22.989317+00:00"
+            }
+          ],
+          "actions": [
+            {
+              "agent_id": "lodging-1",
+              "action_type": "book_hotel",
+              "payload": {
+                "hotel": "Belem Garden Inn",
+                "resolved": {
+                  "trip:1:hotel.checkin_date": {
+                    "date": "2026-09-15"
+                  }
+                }
+              },
+              "required_keys": [
+                "trip:1:hotel.checkin_date"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "6382a24e-62b2-437b-979d-1c541fccccc6"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:23.626188+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "S2_budget_ceiling",
+      "title": "Budget ceiling vs inferred flexibility",
+      "tier": "tier2",
+      "description": "The budget agent records a hard ceiling of $2,400. The research agent infers from browsing history that the traveller is 'flexible on price'. Different subject keys, so tier 1 has no structural opinion -- this is the pair tier 2 exists for.",
+      "wrong_action_note": "booking exceeds policy; the expense is rejected later",
+      "requires_semantic_embeddings": true,
+      "expectations": {
+        "naive": {
+          "contradictory_active_pairs": "0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "no cross-key reasoning at all; books over the ceiling"
+        },
+        "txn_only": {
+          "contradictory_active_pairs": "0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "isolation says nothing about a policy breach"
+        },
+        "quorum": {
+          "contradictory_active_pairs": "0",
+          "wrong_actions": "0",
+          "blocked_actions": ">0",
+          "note": "R1: budget_agent (t2) outranks research_agent (t4); the inference is rejected and the booking loses its justification"
+        }
+      },
+      "verdicts": {
+        "naive": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "no cross-key reasoning at all; books over the ceiling"
+        },
+        "txn_only": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "isolation says nothing about a policy breach"
+        },
+        "quorum": {
+          "pass": false,
+          "blocked": true,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": false,
+            "blocked_actions": false
+          },
+          "note": "R1: budget_agent (t2) outranks research_agent (t4); the inference is rejected and the booking loses its justification"
+        }
+      },
+      "modes": {
+        "naive": {
+          "run_id": "058513a3-e3ce-4469-9a49-876db5b0a888",
+          "workspace_id": "11506577-fd58-4288-9db7-c0075cdc4d73",
+          "started_at": "2026-07-25T12:48:26.033263+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 0,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "acted_on": 2900,
+                    "action_id": "e5bfe900-d91d-4d2e-a4f3-a2bc4995b412",
+                    "action_type": "book_package",
+                    "limit": 2400,
+                    "reason": "violates_memory_constraint",
+                    "subject_key": "trip:1:budget.ceiling_usd"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 1.4,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": "0",
+              "note": "no cross-key reasoning at all; books over the ceiling",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 4
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "naive",
+              "uses_semantic_layer": false,
+              "uses_transactions": false
+            },
+            "mode": "naive",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 419.9,
+              "p95_write_ms": 530.3,
+              "p99_write_ms": 530.3,
+              "retries_by_label": {},
+              "slow_txns": [],
+              "txn_count": 0,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 4
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": true,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "058513a3-e3ce-4469-9a49-876db5b0a888",
+            "scenario": "S2_budget_ceiling",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "budget-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 530.3,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "budget sets the ceiling",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 419.9,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "research infers flexibility",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "booking-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "bc68d409-e8f3-4a81-b19c-e32c1d7034e8",
+                    "2becfe38-1932-4056-a31b-d6b53263666c"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "book a package over the ceiling",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "11506577-fd58-4288-9db7-c0075cdc4d73"
+          },
+          "atoms": [
+            {
+              "id": "bc68d409-e8f3-4a81-b19c-e32c1d7034e8",
+              "subject_key": "trip:1:budget.ceiling_usd",
+              "predicate": "equals",
+              "object_text": "budget ceiling is 2400 USD",
+              "object_json": {
+                "amount": 2400
+              },
+              "writer_agent_id": "budget-1",
+              "writer_role": "budget_agent",
+              "confidence": 0.9,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:26.336637+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "2becfe38-1932-4056-a31b-d6b53263666c",
+              "subject_key": "trip:1:traveller.price_flexibility",
+              "predicate": "equals",
+              "object_text": "traveller is flexible on price and will pay above 2400 USD",
+              "object_json": {
+                "flexible_above": 2400
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.4,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:26.844166+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "booking-1",
+              "action_type": "book_package",
+              "payload": {
+                "resolved": {
+                  "trip:1:budget.ceiling_usd": {
+                    "amount": 2400
+                  },
+                  "trip:1:traveller.price_flexibility": {
+                    "flexible_above": 2400
+                  }
+                },
+                "total_usd": 2900
+              },
+              "required_keys": [
+                "trip:1:budget.ceiling_usd",
+                "trip:1:traveller.price_flexibility"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "bc68d409-e8f3-4a81-b19c-e32c1d7034e8",
+                "2becfe38-1932-4056-a31b-d6b53263666c"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:27.474056+00:00"
+            }
+          ]
+        },
+        "txn_only": {
+          "run_id": "863410db-02ff-4655-9696-a077ea2f6496",
+          "workspace_id": "9c75ca00-786b-4409-a61e-5bbf52cbb13a",
+          "started_at": "2026-07-25T12:48:28.817896+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 0,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "acted_on": 2900,
+                    "action_id": "a549c98f-455a-4097-b515-0aa62f974a9c",
+                    "action_type": "book_package",
+                    "limit": 2400,
+                    "reason": "violates_memory_constraint",
+                    "subject_key": "trip:1:budget.ceiling_usd"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 1.31,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": "0",
+              "note": "isolation says nothing about a policy breach",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 4
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "txn_only",
+              "uses_semantic_layer": false,
+              "uses_transactions": true
+            },
+            "mode": "txn_only",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 249.4,
+              "p95_write_ms": 752.7,
+              "p99_write_ms": 752.7,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 248.7
+                },
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 751.9
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 4
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": true,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "863410db-02ff-4655-9696-a077ea2f6496",
+            "scenario": "S2_budget_ceiling",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "budget-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 249.4,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "budget sets the ceiling",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 752.7,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "research infers flexibility",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "booking-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "e5eb4f28-342a-4fb3-a345-efdfd25b00de",
+                    "2d201d0e-6968-4fa0-9050-7517c2128d78"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "book a package over the ceiling",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "9c75ca00-786b-4409-a61e-5bbf52cbb13a"
+          },
+          "atoms": [
+            {
+              "id": "e5eb4f28-342a-4fb3-a345-efdfd25b00de",
+              "subject_key": "trip:1:budget.ceiling_usd",
+              "predicate": "equals",
+              "object_text": "budget ceiling is 2400 USD",
+              "object_json": {
+                "amount": 2400
+              },
+              "writer_agent_id": "budget-1",
+              "writer_role": "budget_agent",
+              "confidence": 0.9,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:28.968162+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "2d201d0e-6968-4fa0-9050-7517c2128d78",
+              "subject_key": "trip:1:traveller.price_flexibility",
+              "predicate": "equals",
+              "object_text": "traveller is flexible on price and will pay above 2400 USD",
+              "object_json": {
+                "flexible_above": 2400
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.4,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:29.221976+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "booking-1",
+              "action_type": "book_package",
+              "payload": {
+                "resolved": {
+                  "trip:1:budget.ceiling_usd": {
+                    "amount": 2400
+                  },
+                  "trip:1:traveller.price_flexibility": {
+                    "flexible_above": 2400
+                  }
+                },
+                "total_usd": 2900
+              },
+              "required_keys": [
+                "trip:1:budget.ceiling_usd",
+                "trip:1:traveller.price_flexibility"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "e5eb4f28-342a-4fb3-a345-efdfd25b00de",
+                "2d201d0e-6968-4fa0-9050-7517c2128d78"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:30.132683+00:00"
+            }
+          ]
+        },
+        "quorum": {
+          "run_id": "d7be76b3-5fcf-4d72-ba2e-e810d471c8a1",
+          "workspace_id": "88197faf-1825-4bf3-968d-7560e13b58c6",
+          "started_at": "2026-07-25T12:48:33.168307+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 0,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "acted_on": 2900,
+                    "action_id": "6a9e74bb-f461-4f14-86de-d4327f2d6ed2",
+                    "action_type": "book_package",
+                    "limit": 2400,
+                    "reason": "violates_memory_constraint",
+                    "subject_key": "trip:1:budget.ceiling_usd"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 1.99,
+            "expectation": {
+              "blocked_actions": ">0",
+              "contradictory_active_pairs": "0",
+              "note": "R1: budget_agent (t2) outranks research_agent (t4); the inference is rejected and the booking loses its justification",
+              "wrong_actions": "0"
+            },
+            "memory": {
+              "adjudicator": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              },
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 4
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": true,
+              "mode": "quorum",
+              "reprepare_max": 2,
+              "tau_adjudicate": 0.82,
+              "uses_semantic_layer": true,
+              "uses_transactions": true
+            },
+            "mode": "quorum",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 657.0,
+              "p95_write_ms": 1069.2,
+              "p99_write_ms": 1069.2,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 720.1
+                },
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 572.3
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 4
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": true,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "d7be76b3-5fcf-4d72-ba2e-e810d471c8a1",
+            "scenario": "S2_budget_ceiling",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "budget-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 1069.2,
+                  "policy_rule": null,
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "budget sets the ceiling",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 657.0,
+                  "policy_rule": null,
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "research infers flexibility",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "booking-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "31dcfd28-cf5a-4535-8644-736f3c811904",
+                    "e3c00fc5-d360-420d-b1b8-602666305d4d"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "book a package over the ceiling",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "88197faf-1825-4bf3-968d-7560e13b58c6"
+          },
+          "atoms": [
+            {
+              "id": "31dcfd28-cf5a-4535-8644-736f3c811904",
+              "subject_key": "trip:1:budget.ceiling_usd",
+              "predicate": "equals",
+              "object_text": "budget ceiling is 2400 USD",
+              "object_json": {
+                "amount": 2400
+              },
+              "writer_agent_id": "budget-1",
+              "writer_role": "budget_agent",
+              "confidence": 0.9,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:33.645814+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "e3c00fc5-d360-420d-b1b8-602666305d4d",
+              "subject_key": "trip:1:traveller.price_flexibility",
+              "predicate": "equals",
+              "object_text": "traveller is flexible on price and will pay above 2400 USD",
+              "object_json": {
+                "flexible_above": 2400
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.4,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:34.448787+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "booking-1",
+              "action_type": "book_package",
+              "payload": {
+                "resolved": {
+                  "trip:1:budget.ceiling_usd": {
+                    "amount": 2400
+                  },
+                  "trip:1:traveller.price_flexibility": {
+                    "flexible_above": 2400
+                  }
+                },
+                "total_usd": 2900
+              },
+              "required_keys": [
+                "trip:1:budget.ceiling_usd",
+                "trip:1:traveller.price_flexibility"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "31dcfd28-cf5a-4535-8644-736f3c811904",
+                "e3c00fc5-d360-420d-b1b8-602666305d4d"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:35.232158+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "S3_ground_overlap",
+      "title": "Two ground agents, one transfer slot",
+      "tier": "tier1",
+      "description": "Two ground agents each book an airport transfer for the same slot with identical authority, identical evidence and identical confidence. Nothing in the data says which is right -- and that is the point.",
+      "wrong_action_note": "double-booked and double-charged airport transfer",
+      "requires_semantic_embeddings": false,
+      "expectations": {
+        "naive": {
+          "contradictory_active_pairs": ">0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "two active transfers; books one, charges for both"
+        },
+        "txn_only": {
+          "contradictory_active_pairs": ">0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "both commit cleanly as unrelated rows"
+        },
+        "quorum": {
+          "contradictory_active_pairs": "0",
+          "wrong_actions": "0",
+          "blocked_actions": ">0",
+          "note": "R4: same tier, same evidence -- CONTEST and block"
+        }
+      },
+      "verdicts": {
+        "naive": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "two active transfers; books one, charges for both"
+        },
+        "txn_only": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "both commit cleanly as unrelated rows"
+        },
+        "quorum": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "R4: same tier, same evidence -- CONTEST and block"
+        }
+      },
+      "modes": {
+        "naive": {
+          "run_id": "634c64a4-110a-483e-ba35-f6d899b2447d",
+          "workspace_id": "37ced0c6-408c-4eee-ba14-950323a299a3",
+          "started_at": "2026-07-25T12:48:36.408683+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 1,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [
+                  {
+                    "a": "3b03104e-896f-4fc8-8ba5-d82d9a687067",
+                    "a_text": "airport transfer at 2026-09-15T09:00 with LisboaCars",
+                    "b": "e21f42ac-8d55-4d7e-bb3c-0aeac39b476d",
+                    "b_text": "airport transfer at 2026-09-15T09:00 with TejoTransfers",
+                    "subject_key": "trip:1:ground.transfer_slot"
+                  }
+                ],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "action_id": "912f9e99-3b54-4ba8-a0c8-793d9454d803",
+                    "action_type": "book_transfer",
+                    "live_answers": 2,
+                    "reason": "ambiguous_memory",
+                    "subject_key": "trip:1:ground.transfer_slot"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 1.07,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": ">0",
+              "note": "two active transfers; books one, charges for both",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 6
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "naive",
+              "uses_semantic_layer": false,
+              "uses_transactions": false
+            },
+            "mode": "naive",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 430.0,
+              "p95_write_ms": 469.8,
+              "p99_write_ms": 469.8,
+              "retries_by_label": {},
+              "slow_txns": [],
+              "txn_count": 0,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 6
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "634c64a4-110a-483e-ba35-f6d899b2447d",
+            "scenario": "S3_ground_overlap",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 430.0,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "ground-1 books LisboaCars",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "ground-2",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 469.8,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "ground-2 books TejoTransfers",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "e21f42ac-8d55-4d7e-bb3c-0aeac39b476d"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "confirm the transfer",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "37ced0c6-408c-4eee-ba14-950323a299a3"
+          },
+          "atoms": [
+            {
+              "id": "3b03104e-896f-4fc8-8ba5-d82d9a687067",
+              "subject_key": "trip:1:ground.transfer_slot",
+              "predicate": "equals",
+              "object_text": "airport transfer at 2026-09-15T09:00 with LisboaCars",
+              "object_json": {
+                "provider": "LisboaCars",
+                "slot": "2026-09-15T09:00"
+              },
+              "writer_agent_id": "ground-1",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:36.616168+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "e21f42ac-8d55-4d7e-bb3c-0aeac39b476d",
+              "subject_key": "trip:1:ground.transfer_slot",
+              "predicate": "equals",
+              "object_text": "airport transfer at 2026-09-15T09:00 with TejoTransfers",
+              "object_json": {
+                "provider": "TejoTransfers",
+                "slot": "2026-09-15T09:00"
+              },
+              "writer_agent_id": "ground-2",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:37.316264+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "ground-1",
+              "action_type": "book_transfer",
+              "payload": {
+                "resolved": {
+                  "trip:1:ground.transfer_slot": {
+                    "provider": "TejoTransfers",
+                    "slot": "2026-09-15T09:00"
+                  }
+                },
+                "slot": "2026-09-15T09:00"
+              },
+              "required_keys": [
+                "trip:1:ground.transfer_slot"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "e21f42ac-8d55-4d7e-bb3c-0aeac39b476d"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:37.494107+00:00"
+            }
+          ]
+        },
+        "txn_only": {
+          "run_id": "27485583-cae5-4929-87c4-b72d468620dd",
+          "workspace_id": "87756fd3-509c-4efa-bdf7-76abe6c47d7e",
+          "started_at": "2026-07-25T12:48:38.552082+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 1,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [
+                  {
+                    "a": "593d7c8c-0a83-4c6d-a441-0d5bbed3b277",
+                    "a_text": "airport transfer at 2026-09-15T09:00 with LisboaCars",
+                    "b": "f85fc24a-debc-4561-846c-725b3493b7cc",
+                    "b_text": "airport transfer at 2026-09-15T09:00 with TejoTransfers",
+                    "subject_key": "trip:1:ground.transfer_slot"
+                  }
+                ],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "action_id": "69e294ac-47ee-4517-9bab-6efb5e3ad396",
+                    "action_type": "book_transfer",
+                    "live_answers": 2,
+                    "reason": "ambiguous_memory",
+                    "subject_key": "trip:1:ground.transfer_slot"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 1.43,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": ">0",
+              "note": "both commit cleanly as unrelated rows",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 6
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "txn_only",
+              "uses_semantic_layer": false,
+              "uses_transactions": true
+            },
+            "mode": "txn_only",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 430.8,
+              "p95_write_ms": 796.4,
+              "p99_write_ms": 796.4,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 430.2
+                },
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 795.8
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 6
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "27485583-cae5-4929-87c4-b72d468620dd",
+            "scenario": "S3_ground_overlap",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 430.8,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "ground-1 books LisboaCars",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "ground-2",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 796.4,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "ground-2 books TejoTransfers",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "f85fc24a-debc-4561-846c-725b3493b7cc"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "confirm the transfer",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "87756fd3-509c-4efa-bdf7-76abe6c47d7e"
+          },
+          "atoms": [
+            {
+              "id": "593d7c8c-0a83-4c6d-a441-0d5bbed3b277",
+              "subject_key": "trip:1:ground.transfer_slot",
+              "predicate": "equals",
+              "object_text": "airport transfer at 2026-09-15T09:00 with LisboaCars",
+              "object_json": {
+                "provider": "LisboaCars",
+                "slot": "2026-09-15T09:00"
+              },
+              "writer_agent_id": "ground-1",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:38.652139+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "f85fc24a-debc-4561-846c-725b3493b7cc",
+              "subject_key": "trip:1:ground.transfer_slot",
+              "predicate": "equals",
+              "object_text": "airport transfer at 2026-09-15T09:00 with TejoTransfers",
+              "object_json": {
+                "provider": "TejoTransfers",
+                "slot": "2026-09-15T09:00"
+              },
+              "writer_agent_id": "ground-2",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:39.072435+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "ground-1",
+              "action_type": "book_transfer",
+              "payload": {
+                "resolved": {
+                  "trip:1:ground.transfer_slot": {
+                    "provider": "TejoTransfers",
+                    "slot": "2026-09-15T09:00"
+                  }
+                },
+                "slot": "2026-09-15T09:00"
+              },
+              "required_keys": [
+                "trip:1:ground.transfer_slot"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "f85fc24a-debc-4561-846c-725b3493b7cc"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:39.924153+00:00"
+            }
+          ]
+        },
+        "quorum": {
+          "run_id": "e3af0d1e-269e-4d18-8047-71f99fba92a8",
+          "workspace_id": "d6b0ff23-861f-4ad4-ae97-9e9d6aa85d5f",
+          "started_at": "2026-07-25T12:48:40.773536+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 1,
+              "contested_atoms": 2,
+              "contradictory_active_pairs": 0,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {
+                  "blocked_contested": 1
+                },
+                "conflicts": [
+                  {
+                    "count": 1,
+                    "detector": "tier2_semantic",
+                    "policy_rule": "R4",
+                    "resolution": "contest",
+                    "verdict": "contradiction"
+                  }
+                ],
+                "contradictory_pairs": [],
+                "stale_reads": [],
+                "wrong_actions": []
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 0
+            },
+            "conflicts": {
+              "detected": 1,
+              "policy_rules": {
+                "R4": 1
+              },
+              "resolutions": {
+                "contest": 1
+              },
+              "tier1": 0,
+              "tier2": 1,
+              "verdicts": {
+                "contradiction": 1
+              }
+            },
+            "duration_s": 1.44,
+            "expectation": {
+              "blocked_actions": ">0",
+              "contradictory_active_pairs": "0",
+              "note": "R4: same tier, same evidence -- CONTEST and block",
+              "wrong_actions": "0"
+            },
+            "memory": {
+              "adjudicator": {
+                "calls_this_run": 1,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              },
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 6
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": true,
+              "mode": "quorum",
+              "reprepare_max": 2,
+              "tau_adjudicate": 0.82,
+              "uses_semantic_layer": true,
+              "uses_transactions": true
+            },
+            "mode": "quorum",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 580.8,
+              "p95_write_ms": 769.1,
+              "p99_write_ms": 769.1,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 609.8
+                },
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 486.9
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 6
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 1,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "e3af0d1e-269e-4d18-8047-71f99fba92a8",
+            "scenario": "S3_ground_overlap",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 769.1,
+                  "policy_rule": null,
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "ground-1 books LisboaCars",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "ground-2",
+                "detail": {
+                  "conflicts": [
+                    {
+                      "adjudicator_ms": 0,
+                      "detector": "tier2_semantic",
+                      "existing_atom_id": "b4b41fdb-c2ed-4df4-ae7c-18b0a67c5eb9",
+                      "incoming_atom_id": "47324c0b-e3e3-405e-bdec-68e8732148bc",
+                      "policy_rule": "R4",
+                      "rationale": "Cannot adjudicate: ground_agent and ground_agent are both tier 3 with comparable evidence and confidence. Both atoms marked contested; dependent actions blocked.",
+                      "resolution": "contest",
+                      "similarity": 0.9283651411533356,
+                      "subject_key": "trip:1:ground.transfer_slot",
+                      "verdict": "contradiction"
+                    }
+                  ],
+                  "error": null,
+                  "latency_ms": 580.8,
+                  "policy_rule": "R4",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "ground-2 books TejoTransfers",
+                "outcome": "contest"
+              },
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "executed": false,
+                  "justifying_atom_ids": [],
+                  "reason": "trip:1:ground.transfer_slot is contested: airport transfer at 2026-09-15T09:00 with LisboaCars vs airport transfer at 2026-09-15T09:00 with TejoTransfers"
+                },
+                "kind": "act",
+                "label": "confirm the transfer",
+                "outcome": "blocked_contested"
+              }
+            ],
+            "workspace_id": "d6b0ff23-861f-4ad4-ae97-9e9d6aa85d5f"
+          },
+          "atoms": [
+            {
+              "id": "b4b41fdb-c2ed-4df4-ae7c-18b0a67c5eb9",
+              "subject_key": "trip:1:ground.transfer_slot",
+              "predicate": "equals",
+              "object_text": "airport transfer at 2026-09-15T09:00 with LisboaCars",
+              "object_json": {
+                "provider": "LisboaCars",
+                "slot": "2026-09-15T09:00"
+              },
+              "writer_agent_id": "ground-1",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:41.028264+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "contested"
+            },
+            {
+              "id": "47324c0b-e3e3-405e-bdec-68e8732148bc",
+              "subject_key": "trip:1:ground.transfer_slot",
+              "predicate": "equals",
+              "object_text": "airport transfer at 2026-09-15T09:00 with TejoTransfers",
+              "object_json": {
+                "provider": "TejoTransfers",
+                "slot": "2026-09-15T09:00"
+              },
+              "writer_agent_id": "ground-2",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:41.728014+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "contested"
+            }
+          ],
+          "conflicts": [
+            {
+              "incoming_atom_id": "47324c0b-e3e3-405e-bdec-68e8732148bc",
+              "existing_atom_id": "b4b41fdb-c2ed-4df4-ae7c-18b0a67c5eb9",
+              "subject_key": "trip:1:ground.transfer_slot",
+              "detector": "tier2_semantic",
+              "similarity": 0.9283651411533356,
+              "verdict": "contradiction",
+              "resolution": "contest",
+              "policy_rule": "R4",
+              "rationale": "Cannot adjudicate: ground_agent and ground_agent are both tier 3 with comparable evidence and confidence. Both atoms marked contested; dependent actions blocked.",
+              "adjudicator_ms": 0,
+              "detected_at": "2026-07-25T12:48:41.728014+00:00"
+            }
+          ],
+          "actions": [
+            {
+              "agent_id": "ground-1",
+              "action_type": "book_transfer",
+              "payload": {
+                "slot": "2026-09-15T09:00"
+              },
+              "required_keys": [
+                "trip:1:ground.transfer_slot"
+              ],
+              "gate_result": "blocked_contested",
+              "justifying_atom_ids": [],
+              "executed": false,
+              "outcome": "trip:1:ground.transfer_slot is contested: airport transfer at 2026-09-15T09:00 with LisboaCars vs airport transfer at 2026-09-15T09:00 with TejoTransfers",
+              "created_at": "2026-07-25T12:48:42.260099+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "S4_preference_reversal",
+      "title": "Contact preference reversal",
+      "tier": "tier2",
+      "description": "The traveller earlier preferred email updates; later they say stop emailing. Same writer role, same authority, no structural signal that one supersedes the other -- recency within a tier has to decide it.",
+      "wrong_action_note": "agent keeps emailing after opt-out -- a compliance failure",
+      "requires_semantic_embeddings": false,
+      "expectations": {
+        "naive": {
+          "contradictory_active_pairs": ">0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "both preferences active; keeps emailing after opt-out"
+        },
+        "txn_only": {
+          "contradictory_active_pairs": ">0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "two clean rows, one compliance failure"
+        },
+        "quorum": {
+          "contradictory_active_pairs": "0",
+          "wrong_actions": "0",
+          "blocked_actions": "0",
+          "note": "R3: recency within a tier supersedes"
+        }
+      },
+      "verdicts": {
+        "naive": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "both preferences active; keeps emailing after opt-out"
+        },
+        "txn_only": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "two clean rows, one compliance failure"
+        },
+        "quorum": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "R3: recency within a tier supersedes"
+        }
+      },
+      "modes": {
+        "naive": {
+          "run_id": "6874ead0-b60c-4c73-94bf-293ad4ebbe99",
+          "workspace_id": "c5bc6b72-b614-4e01-9a0d-c4294c34bc71",
+          "started_at": "2026-07-25T12:48:43.136257+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 1,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [
+                  {
+                    "a": "44bc597e-a5f5-4360-800f-794fb007e0ff",
+                    "a_text": "traveller prefers email updates",
+                    "b": "494770e7-13e2-4003-b353-2d4e58a68c4e",
+                    "b_text": "traveller asked to stop receiving emails",
+                    "subject_key": "trip:1:traveller.contact_preference"
+                  }
+                ],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "action_id": "a8ff4b06-0e9d-48e5-b6e0-c9757b6c1a6c",
+                    "action_type": "send_update_email",
+                    "live_answers": 2,
+                    "reason": "ambiguous_memory",
+                    "subject_key": "trip:1:traveller.contact_preference"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 0.91,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": ">0",
+              "note": "both preferences active; keeps emailing after opt-out",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 8
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "naive",
+              "uses_semantic_layer": false,
+              "uses_transactions": false
+            },
+            "mode": "naive",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 175.1,
+              "p95_write_ms": 333.6,
+              "p99_write_ms": 333.6,
+              "retries_by_label": {},
+              "slow_txns": [],
+              "txn_count": 0,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 8
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "6874ead0-b60c-4c73-94bf-293ad4ebbe99",
+            "scenario": "S4_preference_reversal",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 175.1,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "earlier: prefers email",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 333.6,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "later: opts out",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "494770e7-13e2-4003-b353-2d4e58a68c4e"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "send an itinerary email",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "c5bc6b72-b614-4e01-9a0d-c4294c34bc71"
+          },
+          "atoms": [
+            {
+              "id": "44bc597e-a5f5-4360-800f-794fb007e0ff",
+              "subject_key": "trip:1:traveller.contact_preference",
+              "predicate": "prefers",
+              "object_text": "traveller prefers email updates",
+              "object_json": {
+                "channel": "email"
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.6,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:43.353974+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "494770e7-13e2-4003-b353-2d4e58a68c4e",
+              "subject_key": "trip:1:traveller.contact_preference",
+              "predicate": "prefers",
+              "object_text": "traveller asked to stop receiving emails",
+              "object_json": {
+                "channel": "none"
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.8,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:43.641215+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "research-1",
+              "action_type": "send_update_email",
+              "payload": {
+                "resolved": {
+                  "trip:1:traveller.contact_preference": {
+                    "channel": "none"
+                  }
+                },
+                "template": "itinerary_update"
+              },
+              "required_keys": [
+                "trip:1:traveller.contact_preference"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "494770e7-13e2-4003-b353-2d4e58a68c4e"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:43.946405+00:00"
+            }
+          ]
+        },
+        "txn_only": {
+          "run_id": "2f175ccb-c3d6-4cb5-a570-e70851896bc3",
+          "workspace_id": "6f6be9fd-0a2f-4401-b18b-ccddf686bdb9",
+          "started_at": "2026-07-25T12:48:44.932337+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 1,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [
+                  {
+                    "a": "b6a3194a-9a84-4df4-9924-00c338ef3eb0",
+                    "a_text": "traveller asked to stop receiving emails",
+                    "b": "d5c37c1b-8929-40ac-9b50-fa97091c3066",
+                    "b_text": "traveller prefers email updates",
+                    "subject_key": "trip:1:traveller.contact_preference"
+                  }
+                ],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "action_id": "c995ca8e-9954-4a2f-a3d9-981de4140f98",
+                    "action_type": "send_update_email",
+                    "live_answers": 2,
+                    "reason": "ambiguous_memory",
+                    "subject_key": "trip:1:traveller.contact_preference"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 1.14,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": ">0",
+              "note": "two clean rows, one compliance failure",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 8
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "txn_only",
+              "uses_semantic_layer": false,
+              "uses_transactions": true
+            },
+            "mode": "txn_only",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 261.5,
+              "p95_write_ms": 689.5,
+              "p99_write_ms": 689.5,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 260.5
+                },
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 688.8
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 8
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "2f175ccb-c3d6-4cb5-a570-e70851896bc3",
+            "scenario": "S4_preference_reversal",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 261.5,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "earlier: prefers email",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 689.5,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "later: opts out",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "b6a3194a-9a84-4df4-9924-00c338ef3eb0"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "send an itinerary email",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "6f6be9fd-0a2f-4401-b18b-ccddf686bdb9"
+          },
+          "atoms": [
+            {
+              "id": "d5c37c1b-8929-40ac-9b50-fa97091c3066",
+              "subject_key": "trip:1:traveller.contact_preference",
+              "predicate": "prefers",
+              "object_text": "traveller prefers email updates",
+              "object_json": {
+                "channel": "email"
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.6,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:45.028724+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "b6a3194a-9a84-4df4-9924-00c338ef3eb0",
+              "subject_key": "trip:1:traveller.contact_preference",
+              "predicate": "prefers",
+              "object_text": "traveller asked to stop receiving emails",
+              "object_json": {
+                "channel": "none"
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.8,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:45.290125+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "research-1",
+              "action_type": "send_update_email",
+              "payload": {
+                "resolved": {
+                  "trip:1:traveller.contact_preference": {
+                    "channel": "none"
+                  }
+                },
+                "template": "itinerary_update"
+              },
+              "required_keys": [
+                "trip:1:traveller.contact_preference"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "b6a3194a-9a84-4df4-9924-00c338ef3eb0"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:46.036021+00:00"
+            }
+          ]
+        },
+        "quorum": {
+          "run_id": "dfa0682a-53e4-4d3d-a304-1d29255ebb25",
+          "workspace_id": "981c5c58-0423-4621-9289-69ba531acc3a",
+          "started_at": "2026-07-25T12:48:47.043988+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 0,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [
+                  {
+                    "count": 1,
+                    "detector": "tier2_semantic",
+                    "policy_rule": "R3",
+                    "resolution": "supersede",
+                    "verdict": "contradiction"
+                  }
+                ],
+                "contradictory_pairs": [],
+                "stale_reads": [],
+                "wrong_actions": []
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 0
+            },
+            "conflicts": {
+              "detected": 1,
+              "policy_rules": {
+                "R3": 1
+              },
+              "resolutions": {
+                "supersede": 1
+              },
+              "tier1": 0,
+              "tier2": 1,
+              "verdicts": {
+                "contradiction": 1
+              }
+            },
+            "duration_s": 1.63,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": "0",
+              "note": "R3: recency within a tier supersedes",
+              "wrong_actions": "0"
+            },
+            "memory": {
+              "adjudicator": {
+                "calls_this_run": 1,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              },
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 8
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": true,
+              "mode": "quorum",
+              "reprepare_max": 2,
+              "tau_adjudicate": 0.82,
+              "uses_semantic_layer": true,
+              "uses_transactions": true
+            },
+            "mode": "quorum",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 673.1,
+              "p95_write_ms": 875.0,
+              "p99_write_ms": 875.0,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 567.2
+                },
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 392.3
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 8
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 1,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "dfa0682a-53e4-4d3d-a304-1d29255ebb25",
+            "scenario": "S4_preference_reversal",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 875.0,
+                  "policy_rule": null,
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "earlier: prefers email",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "conflicts": [
+                    {
+                      "adjudicator_ms": 0,
+                      "detector": "tier2_semantic",
+                      "existing_atom_id": "53b6b549-eba8-4a2b-84f2-823f1b57c4d9",
+                      "incoming_atom_id": "3a21afcd-a795-46f1-be25-98813b84ec27",
+                      "policy_rule": "R3",
+                      "rationale": "Same authority tier (4), low evidence on both, and the newer claim is materially more confident (0.80 vs 0.60).",
+                      "resolution": "supersede",
+                      "similarity": 0.9314865618944168,
+                      "subject_key": "trip:1:traveller.contact_preference",
+                      "verdict": "contradiction"
+                    }
+                  ],
+                  "error": null,
+                  "latency_ms": 673.1,
+                  "policy_rule": "R3",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "later: opts out",
+                "outcome": "supersede"
+              },
+              {
+                "agent_id": "research-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "3a21afcd-a795-46f1-be25-98813b84ec27"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "send an itinerary email",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "981c5c58-0423-4621-9289-69ba531acc3a"
+          },
+          "atoms": [
+            {
+              "id": "53b6b549-eba8-4a2b-84f2-823f1b57c4d9",
+              "subject_key": "trip:1:traveller.contact_preference",
+              "predicate": "prefers",
+              "object_text": "traveller prefers email updates",
+              "object_json": {
+                "channel": "email"
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.6,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:47.438585+00:00",
+              "valid_to": "2026-07-25T12:48:48.284045+00:00",
+              "superseded_by": "3a21afcd-a795-46f1-be25-98813b84ec27",
+              "status": "superseded"
+            },
+            {
+              "id": "3a21afcd-a795-46f1-be25-98813b84ec27",
+              "subject_key": "trip:1:traveller.contact_preference",
+              "predicate": "prefers",
+              "object_text": "traveller asked to stop receiving emails",
+              "object_json": {
+                "channel": "none"
+              },
+              "writer_agent_id": "research-1",
+              "writer_role": "research_agent",
+              "confidence": 0.8,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:48.284045+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [
+            {
+              "incoming_atom_id": "3a21afcd-a795-46f1-be25-98813b84ec27",
+              "existing_atom_id": "53b6b549-eba8-4a2b-84f2-823f1b57c4d9",
+              "subject_key": "trip:1:traveller.contact_preference",
+              "detector": "tier2_semantic",
+              "similarity": 0.9314865618944168,
+              "verdict": "contradiction",
+              "resolution": "supersede",
+              "policy_rule": "R3",
+              "rationale": "Same authority tier (4), low evidence on both, and the newer claim is materially more confident (0.80 vs 0.60).",
+              "adjudicator_ms": 0,
+              "detected_at": "2026-07-25T12:48:48.284045+00:00"
+            }
+          ],
+          "actions": [
+            {
+              "agent_id": "research-1",
+              "action_type": "send_update_email",
+              "payload": {
+                "resolved": {
+                  "trip:1:traveller.contact_preference": {
+                    "channel": "none"
+                  }
+                },
+                "template": "itinerary_update"
+              },
+              "required_keys": [
+                "trip:1:traveller.contact_preference"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "3a21afcd-a795-46f1-be25-98813b84ec27"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:48.716463+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "S5_concurrent_race",
+      "title": "Simultaneous contradictory writes (flagship)",
+      "tier": "tier1",
+      "description": "Two agents write contradictory check-in dates AT THE SAME INSTANT, released together by a barrier. This is the only scenario that isolates the isolation-level argument: in naive both writers read a neighbourhood that does not yet contain the other, both conclude 'no conflict', and both commit. Under serializable isolation one commits, the other takes a 40001, retries, sees the winner, and resolves.",
+      "wrong_action_note": "books against a memory that holds two mutually exclusive dates",
+      "requires_semantic_embeddings": false,
+      "expectations": {
+        "naive": {
+          "contradictory_active_pairs": ">0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "both writers miss each other; memory holds two truths"
+        },
+        "txn_only": {
+          "contradictory_active_pairs": ">0",
+          "wrong_actions": ">0",
+          "blocked_actions": "0",
+          "note": "no anomaly, no lost update -- and still two truths"
+        },
+        "quorum": {
+          "contradictory_active_pairs": "0",
+          "wrong_actions": "0",
+          "blocked_actions": ">0",
+          "note": "one commits, the other 40001s and retries into CONTEST"
+        }
+      },
+      "verdicts": {
+        "naive": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "both writers miss each other; memory holds two truths"
+        },
+        "txn_only": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "no anomaly, no lost update -- and still two truths"
+        },
+        "quorum": {
+          "pass": true,
+          "blocked": false,
+          "checks": {
+            "contradictory_active_pairs": true,
+            "wrong_actions": true,
+            "blocked_actions": true
+          },
+          "note": "one commits, the other 40001s and retries into CONTEST"
+        }
+      },
+      "modes": {
+        "naive": {
+          "run_id": "6bf89148-875a-4a1a-af28-8148a1a23931",
+          "workspace_id": "c15a06d7-a86a-4145-a546-0e6d46b62437",
+          "started_at": "2026-07-25T12:48:49.621132+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 1,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [
+                  {
+                    "a": "7ea947f0-5bad-41ed-8efb-c30324f3d6b0",
+                    "a_text": "check-in is 2026-09-14",
+                    "b": "bb5fb570-240e-45cc-8ebb-43541b69756a",
+                    "b_text": "check-in is 2026-09-15",
+                    "subject_key": "trip:1:hotel.checkin_date"
+                  }
+                ],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "action_id": "11291b0e-2ced-4a52-86ba-bbac58dbe573",
+                    "action_type": "book_hotel",
+                    "live_answers": 2,
+                    "reason": "ambiguous_memory",
+                    "subject_key": "trip:1:hotel.checkin_date"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 0.38,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": ">0",
+              "note": "both writers miss each other; memory holds two truths",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 9
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "naive",
+              "uses_semantic_layer": false,
+              "uses_transactions": false
+            },
+            "mode": "naive",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 191.9,
+              "p95_write_ms": 209.3,
+              "p99_write_ms": 209.3,
+              "retries_by_label": {},
+              "slow_txns": [],
+              "txn_count": 0,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 9
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "6bf89148-875a-4a1a-af28-8148a1a23931",
+            "scenario": "S5_concurrent_race",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 191.9,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "writer A (simultaneous)",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 209.3,
+                  "policy_rule": "naive_append",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "writer B (simultaneous)",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "7ea947f0-5bad-41ed-8efb-c30324f3d6b0"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "book the hotel",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "c15a06d7-a86a-4145-a546-0e6d46b62437"
+          },
+          "atoms": [
+            {
+              "id": "bb5fb570-240e-45cc-8ebb-43541b69756a",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-15",
+              "object_json": {
+                "date": "2026-09-15"
+              },
+              "writer_agent_id": "ground-1",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:49.860143+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "7ea947f0-5bad-41ed-8efb-c30324f3d6b0",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-14",
+              "object_json": {
+                "date": "2026-09-14"
+              },
+              "writer_agent_id": "lodging-1",
+              "writer_role": "lodging_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:49.864213+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "lodging-1",
+              "action_type": "book_hotel",
+              "payload": {
+                "hotel": "Belem Garden Inn",
+                "resolved": {
+                  "trip:1:hotel.checkin_date": {
+                    "date": "2026-09-14"
+                  }
+                }
+              },
+              "required_keys": [
+                "trip:1:hotel.checkin_date"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "7ea947f0-5bad-41ed-8efb-c30324f3d6b0"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:50.027688+00:00"
+            }
+          ]
+        },
+        "txn_only": {
+          "run_id": "84066fef-5ddc-4813-b92b-840113d700f9",
+          "workspace_id": "79e35482-b739-42f3-a682-1d5f8449e741",
+          "started_at": "2026-07-25T12:48:50.832498+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 0,
+              "contested_atoms": 0,
+              "contradictory_active_pairs": 1,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {},
+                "conflicts": [],
+                "contradictory_pairs": [
+                  {
+                    "a": "3500c20b-72d9-4df8-bb0b-a046cb677e9d",
+                    "a_text": "check-in is 2026-09-14",
+                    "b": "a4e409de-36c5-4e1d-af1f-ae2860302c76",
+                    "b_text": "check-in is 2026-09-15",
+                    "subject_key": "trip:1:hotel.checkin_date"
+                  }
+                ],
+                "stale_reads": [],
+                "wrong_actions": [
+                  {
+                    "action_id": "acf0ed32-c0b6-461d-9b0b-bdd933ec1c1d",
+                    "action_type": "book_hotel",
+                    "live_answers": 2,
+                    "reason": "ambiguous_memory",
+                    "subject_key": "trip:1:hotel.checkin_date"
+                  }
+                ]
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 1
+            },
+            "conflicts": {
+              "detected": 0,
+              "policy_rules": {},
+              "resolutions": {},
+              "tier1": 0,
+              "tier2": 0,
+              "verdicts": {}
+            },
+            "duration_s": 0.34,
+            "expectation": {
+              "blocked_actions": "0",
+              "contradictory_active_pairs": ">0",
+              "note": "no anomaly, no lost update -- and still two truths",
+              "wrong_actions": ">0"
+            },
+            "memory": {
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 9
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": false,
+              "mode": "txn_only",
+              "uses_semantic_layer": false,
+              "uses_transactions": true
+            },
+            "mode": "txn_only",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 191.4,
+              "p95_write_ms": 263.6,
+              "p99_write_ms": 263.6,
+              "retries_by_label": {},
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 190.6
+                },
+                {
+                  "attempts": 0,
+                  "label": "txn_only",
+                  "ms": 263.0
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 0,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 9
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "84066fef-5ddc-4813-b92b-840113d700f9",
+            "scenario": "S5_concurrent_race",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 191.4,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "writer A (simultaneous)",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 263.6,
+                  "policy_rule": "txn_only_insert",
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "writer B (simultaneous)",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "executed": true,
+                  "justifying_atom_ids": [
+                    "3500c20b-72d9-4df8-bb0b-a046cb677e9d"
+                  ],
+                  "reason": null
+                },
+                "kind": "act",
+                "label": "book the hotel",
+                "outcome": "allowed"
+              }
+            ],
+            "workspace_id": "79e35482-b739-42f3-a682-1d5f8449e741"
+          },
+          "atoms": [
+            {
+              "id": "a4e409de-36c5-4e1d-af1f-ae2860302c76",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-15",
+              "object_json": {
+                "date": "2026-09-15"
+              },
+              "writer_agent_id": "ground-1",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:50.979708+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            },
+            {
+              "id": "3500c20b-72d9-4df8-bb0b-a046cb677e9d",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-14",
+              "object_json": {
+                "date": "2026-09-14"
+              },
+              "writer_agent_id": "lodging-1",
+              "writer_role": "lodging_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:50.979710+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "active"
+            }
+          ],
+          "conflicts": [],
+          "actions": [
+            {
+              "agent_id": "lodging-1",
+              "action_type": "book_hotel",
+              "payload": {
+                "hotel": "Belem Garden Inn",
+                "resolved": {
+                  "trip:1:hotel.checkin_date": {
+                    "date": "2026-09-14"
+                  }
+                }
+              },
+              "required_keys": [
+                "trip:1:hotel.checkin_date"
+              ],
+              "gate_result": "allowed",
+              "justifying_atom_ids": [
+                "3500c20b-72d9-4df8-bb0b-a046cb677e9d"
+              ],
+              "executed": true,
+              "outcome": "executed",
+              "created_at": "2026-07-25T12:48:51.238351+00:00"
+            }
+          ]
+        },
+        "quorum": {
+          "run_id": "e239f1de-51a1-4514-bb81-60d95c0488a7",
+          "workspace_id": "ddd8c850-2bba-41cd-bf23-4931ccbb13b1",
+          "started_at": "2026-07-25T12:48:51.782033+00:00",
+          "report": {
+            "anomalies": {
+              "blocked_actions": 1,
+              "contested_atoms": 2,
+              "contradictory_active_pairs": 0,
+              "details": {
+                "acknowledged_writes": 2,
+                "atoms_present": 2,
+                "blocked_by_reason": {
+                  "blocked_contested": 1
+                },
+                "conflicts": [
+                  {
+                    "count": 1,
+                    "detector": "tier1_structural",
+                    "policy_rule": "R4",
+                    "resolution": "contest",
+                    "verdict": "contradiction"
+                  }
+                ],
+                "contradictory_pairs": [],
+                "stale_reads": [],
+                "wrong_actions": []
+              },
+              "lost_updates": 0,
+              "stale_reads": 0,
+              "wrong_actions": 0
+            },
+            "conflicts": {
+              "detected": 1,
+              "policy_rules": {
+                "R4": 1
+              },
+              "resolutions": {
+                "contest": 1
+              },
+              "tier1": 1,
+              "tier2": 0,
+              "verdicts": {
+                "contradiction": 1
+              }
+            },
+            "duration_s": 1.05,
+            "expectation": {
+              "blocked_actions": ">0",
+              "contradictory_active_pairs": "0",
+              "note": "one commits, the other 40001s and retries into CONTEST",
+              "wrong_actions": "0"
+            },
+            "memory": {
+              "adjudicator": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              },
+              "ann_k": 8,
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 9
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "has_action_gate": true,
+              "mode": "quorum",
+              "reprepare_max": 2,
+              "tau_adjudicate": 0.82,
+              "uses_semantic_layer": true,
+              "uses_transactions": true
+            },
+            "mode": "quorum",
+            "performance": {
+              "adjudicator_calls": 0,
+              "adjudicator_failures": 0,
+              "adjudicator_p50_ms": 0.0,
+              "embed_cache_hit_rate": 1.0,
+              "embed_cache_hits": 2,
+              "embed_calls": 0,
+              "embed_p50_ms": 0.0,
+              "est_cost_usd": 0.0,
+              "p50_write_ms": 380.7,
+              "p95_write_ms": 842.7,
+              "p99_write_ms": 842.7,
+              "retries_by_label": {
+                "quorum": 1
+              },
+              "slow_txns": [
+                {
+                  "attempts": 0,
+                  "label": "quorum",
+                  "ms": 239.5
+                },
+                {
+                  "attempts": 1,
+                  "label": "quorum",
+                  "ms": 320.2
+                }
+              ],
+              "txn_count": 2,
+              "txn_give_ups": 0,
+              "txn_retries": 1,
+              "unmapped_attributes": {},
+              "writes_measured": 2
+            },
+            "providers": {
+              "embedder": {
+                "cache": {
+                  "dir": ".cache\\embeddings",
+                  "enabled": true,
+                  "in_memory": 9
+                },
+                "dim": 1024,
+                "model_id": null,
+                "provider": "synthetic_offline",
+                "region": null
+              },
+              "requires_semantic_embeddings": false,
+              "tier2": {
+                "calls_this_run": 0,
+                "model_id": "# confirm what is enabled in YOUR region",
+                "per_claim_budget": 3,
+                "prompt_version": "v1",
+                "provider": "offline_stub",
+                "run_ceiling": 200
+              }
+            },
+            "run_id": "e239f1de-51a1-4514-bb81-60d95c0488a7",
+            "scenario": "S5_concurrent_race",
+            "seed": 1337,
+            "turns": [
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "conflicts": [
+                    {
+                      "adjudicator_ms": null,
+                      "detector": "tier1_structural",
+                      "existing_atom_id": "8d85c19c-55f9-484b-9d1b-b1a772445b33",
+                      "incoming_atom_id": "fea16253-b551-47c3-bce9-ef4f687ce3eb",
+                      "policy_rule": "R4",
+                      "rationale": "Cannot adjudicate: lodging_agent and ground_agent are both tier 3 with comparable evidence and confidence. Both atoms marked contested; dependent actions blocked.",
+                      "resolution": "contest",
+                      "similarity": 0.9321110770106316,
+                      "subject_key": "trip:1:hotel.checkin_date",
+                      "verdict": "contradiction"
+                    }
+                  ],
+                  "error": null,
+                  "latency_ms": 842.7,
+                  "policy_rule": "R4",
+                  "retries": 1
+                },
+                "kind": "remember",
+                "label": "writer A (simultaneous)",
+                "outcome": "contest"
+              },
+              {
+                "agent_id": "ground-1",
+                "detail": {
+                  "conflicts": [],
+                  "error": null,
+                  "latency_ms": 380.7,
+                  "policy_rule": null,
+                  "retries": 0
+                },
+                "kind": "remember",
+                "label": "writer B (simultaneous)",
+                "outcome": "accept"
+              },
+              {
+                "agent_id": "lodging-1",
+                "detail": {
+                  "executed": false,
+                  "justifying_atom_ids": [],
+                  "reason": "trip:1:hotel.checkin_date is contested: check-in is 2026-09-14 vs check-in is 2026-09-15"
+                },
+                "kind": "act",
+                "label": "book the hotel",
+                "outcome": "blocked_contested"
+              }
+            ],
+            "workspace_id": "ddd8c850-2bba-41cd-bf23-4931ccbb13b1"
+          },
+          "atoms": [
+            {
+              "id": "8d85c19c-55f9-484b-9d1b-b1a772445b33",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-15",
+              "object_json": {
+                "date": "2026-09-15"
+              },
+              "writer_agent_id": "ground-1",
+              "writer_role": "ground_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:52.037203+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "contested"
+            },
+            {
+              "id": "fea16253-b551-47c3-bce9-ef4f687ce3eb",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "predicate": "equals",
+              "object_text": "check-in is 2026-09-14",
+              "object_json": {
+                "date": "2026-09-14"
+              },
+              "writer_agent_id": "lodging-1",
+              "writer_role": "lodging_agent",
+              "confidence": 0.7,
+              "evidence_count": 1,
+              "valid_from": "2026-07-25T12:48:52.416286+00:00",
+              "valid_to": null,
+              "superseded_by": null,
+              "status": "contested"
+            }
+          ],
+          "conflicts": [
+            {
+              "incoming_atom_id": "fea16253-b551-47c3-bce9-ef4f687ce3eb",
+              "existing_atom_id": "8d85c19c-55f9-484b-9d1b-b1a772445b33",
+              "subject_key": "trip:1:hotel.checkin_date",
+              "detector": "tier1_structural",
+              "similarity": 0.9321110770106316,
+              "verdict": "contradiction",
+              "resolution": "contest",
+              "policy_rule": "R4",
+              "rationale": "Cannot adjudicate: lodging_agent and ground_agent are both tier 3 with comparable evidence and confidence. Both atoms marked contested; dependent actions blocked.",
+              "adjudicator_ms": null,
+              "detected_at": "2026-07-25T12:48:52.416286+00:00"
+            }
+          ],
+          "actions": [
+            {
+              "agent_id": "lodging-1",
+              "action_type": "book_hotel",
+              "payload": {
+                "hotel": "Belem Garden Inn"
+              },
+              "required_keys": [
+                "trip:1:hotel.checkin_date"
+              ],
+              "gate_result": "blocked_contested",
+              "justifying_atom_ids": [],
+              "executed": false,
+              "outcome": "trip:1:hotel.checkin_date is contested: check-in is 2026-09-14 vs check-in is 2026-09-15",
+              "created_at": "2026-07-25T12:48:52.833851+00:00"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

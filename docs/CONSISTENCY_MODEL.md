@@ -125,3 +125,34 @@ just the database working as designed?" — it *is* the database working as
 designed, and it still produces the wrong booking.
 
 ---
+
+## 5. Guarantees
+
+**Quorum guarantees** (within one workspace):
+
+- No two `active` atoms with the same `subject_key` and different `object_json`
+  survive a completed write. Asserted by `tests/integration/test_txn_isolation.py`.
+- Every detection is recorded in `memory_conflict`, including benign ones.
+- Memory is append-only. Supersession sets `valid_to` and `superseded_by`; there
+  is no `DELETE` in the write path, and the `agent_writer` grant makes that a
+  database-level guarantee rather than a convention.
+- An action whose required keys are contested, missing, or ambiguous is blocked
+  and logged.
+- Contested atoms are returned by `recall()` and flagged, never dropped.
+
+**Quorum does not guarantee:**
+
+- **Cross-key contradictions without semantic similarity.** If two claims
+  contradict but share no subject key *and* their embeddings are not close, no
+  candidate pair is generated and nothing is detected. This is a recall problem,
+  not a soundness problem, and it is bounded by `ANN_K` and `TAU_ADJUDICATE`.
+- **Correct adjudication of genuinely ambiguous language.** Tier 2 is an LLM
+  classifier and it is wrong sometimes. It fails closed to `contradiction`, so
+  its errors produce false contests (safe, visible, human-resolvable) rather
+  than missed contradictions.
+- **Anything across workspaces.** Scoping is enforced per query and tested
+  negatively, but there is no cross-workspace reasoning by design.
+- **That the chosen value is *true*.** Quorum makes memory internally consistent
+  and attributable. It cannot make an agent's claim correct.
+
+---

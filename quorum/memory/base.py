@@ -311,15 +311,28 @@ class MemoryClient(ABC):
 
         Each UNION branch is parenthesised: otherwise the parser binds ORDER BY
         and LIMIT to the whole union and CockroachDB rejects the statement.
+
+        The ANN branch filters ONLY on the columns the vector index covers --
+        workspace_id (its prefix column) and valid_to (its partial predicate).
+        Adding `status IN (...)` inside it defeats the index entirely and the
+        optimiser falls back to a full scan plus top-k, which we measured: at
+        10k atoms the ANN and brute-force plans were byte-identical. So the
+        status filter is applied OUTSIDE, over an over-fetched candidate set.
+        The only live rows it discards are `rejected` ones, which are rare, so
+        an over-fetch factor of 4 is comfortable.
         """
+        k = k or self.ann_k
         cur.execute(
             f"""
             SELECT {ATOM_SELECT}, distance FROM (
-                (SELECT {ATOM_SELECT}, embedding <-> %(vec)s::VECTOR AS distance
-                 FROM memory_atom
-                 WHERE workspace_id = %(ws)s AND valid_to IS NULL
-                   AND status IN ('active','contested')
-                 ORDER BY embedding <-> %(vec)s::VECTOR
+                (SELECT {ATOM_SELECT}, distance FROM (
+                     SELECT {ATOM_SELECT}, embedding <-> %(vec)s::VECTOR AS distance
+                     FROM memory_atom
+                     WHERE workspace_id = %(ws)s AND valid_to IS NULL
+                     ORDER BY embedding <-> %(vec)s::VECTOR
+                     LIMIT %(k_over)s
+                 ) AS ann
+                 WHERE status IN ('active','contested')
                  LIMIT %(k)s)
               UNION ALL
                 (SELECT {ATOM_SELECT}, NULL::FLOAT AS distance
@@ -330,7 +343,7 @@ class MemoryClient(ABC):
             ) AS neighbourhood
             """,
             {"vec": vec_literal, "ws": claim.workspace_id,
-             "k": k or self.ann_k, "sk": claim.subject_key},
+             "k": k, "k_over": k * 4, "sk": claim.subject_key},
         )
         seen: dict[uuid.UUID, Atom] = {}
         for row in cur.fetchall():

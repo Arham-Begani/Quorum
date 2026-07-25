@@ -11,8 +11,17 @@
 -- the vector index. Verified supported on v26.2.1. See
 -- docs/CONSISTENCY_MODEL.md for the measured behaviour and its limits.
 
-CREATE VECTOR INDEX IF NOT EXISTS idx_atom_embedding
-  ON memory_atom (workspace_id, embedding);
+-- MEASURED, not assumed. A plain (workspace_id, embedding) vector index is
+-- NOT chosen by the optimiser for the neighbourhood query, because that query
+-- also filters valid_to and status, which such an index cannot satisfy: at 10k
+-- atoms the ANN and brute-force plans came out byte-identical, both full scans.
+--
+-- Making the index PARTIAL on the same predicate the query uses fixes it. The
+-- remaining `status IN (...)` filter is applied outside the ANN subquery over
+-- an over-fetched candidate set -- see MemoryClient._neighbourhood.
+CREATE VECTOR INDEX IF NOT EXISTS idx_atom_embedding_live
+  ON memory_atom (workspace_id, embedding)
+  WHERE valid_to IS NULL;
 
 -- The hot structural lookup: exact subject_key within a workspace, live rows
 -- only. This is what makes tier-1 detection reliable regardless of ANN recall.

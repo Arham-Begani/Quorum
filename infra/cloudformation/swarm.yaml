@@ -71,3 +71,52 @@ Resources:
                 Resource: "*"
                 Condition:
                   StringEquals: { "cloudwatch:namespace": "Quorum" }
+
+  AgentTurnFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: quorum-agent-turn
+      Handler: handler.handler
+      Runtime: python3.11
+      Role: !GetAtt SwarmRole.Arn
+      Timeout: 30
+      MemorySize: 512
+      # Each concurrent container holds its own connection pool, so keep the
+      # per-container pool tiny -- fan-out multiplies it and a large pool per
+      # container is how you exhaust the cluster's connection limit.
+      ReservedConcurrentExecutions: 20
+      Environment:
+        Variables:
+          QUORUM_DB: quorum
+          LAMBDA_POOL_MAX: "2"
+          BEDROCK_EMBED_MODEL_ID: !Ref BedrockEmbedModelId
+          BEDROCK_CHAT_MODEL_ID: !Ref BedrockChatModelId
+          BEDROCK_EMBED_DIM: "1024"
+          S3_BUCKET: !Ref RunsBucket
+          CLOUDWATCH_NAMESPACE: Quorum
+          CRDB_SECRET_ARN: !Ref CrdbSecretArn
+      Code:
+        S3Bucket: !Sub "quorum-deploy-${BucketSuffix}"
+        S3Key: quorum-lambda.zip
+
+  ContradictionAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: quorum-writes-exhausting-retries
+      AlarmDescription: >
+        A write exhausted its 40001 retry budget. Retries themselves are normal
+        and expected; give-ups are not, and must never be silent.
+      Namespace: Quorum
+      MetricName: txn_give_ups
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  RunsBucketName:
+    Value: !Ref RunsBucket
+  FunctionArn:
+    Value: !GetAtt AgentTurnFunction.Arn

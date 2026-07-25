@@ -250,3 +250,14 @@ class QuorumMemory(MemoryClient):
                                         "ids": [str(i) for i in plan.supersede_ids]})
         elif res == Resolution.CONTEST and plan.contest_ids:
             cur.execute(CONTEST_SQL, {"ids": [str(i) for i in plan.contest_ids]})
+
+    def info(self) -> dict:
+        return super().info() | {
+            "tau_adjudicate": self.tau,
+            "reprepare_max": self.reprepare_max,
+            "adjudicator": self.adjudicator.info(),
+        }
+
+
+def _ms(t0: float) -> float:
+    return (time.perf_counter() - t0) * 1000.0

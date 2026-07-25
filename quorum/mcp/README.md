@@ -51,3 +51,17 @@ and it is the part of the Product Readiness story most entrants will skip.
 
    If the `UPDATE` succeeds, the account is not read-only and the demo claim is
    false. Fix it before recording.
+
+## Why this is load-bearing rather than decorative
+
+The audit story is the answer to "how would you actually operate this?" A human
+investigating a blocked booking needs to ask questions of live memory without
+being able to perturb it. `quorum/mcp/queries.md` holds the exact questions,
+rehearsed, so the live segment is not a coin flip.
+
+## Fallback if the Managed MCP Server is unavailable
+
+Point Claude Code at the read-only FastAPI surface instead
+(`uvicorn quorum.api.server:app`) — it performs no writes by construction, since
+the only write path in the system is `run_txn` inside the memory client. Say so
+plainly rather than implying MCP was used when it was not.

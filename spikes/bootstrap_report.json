@@ -1,0 +1,67 @@
+{
+  "steps": {
+    "connect": {
+      "ok": true,
+      "server_version": "CockroachDB CCL v26.2.1 (x86_64-pc-linux-gnu, built 2026/05/21 21:07:32, go1.25.5)",
+      "cluster_version": "26.2",
+      "database": "defaultdb",
+      "user": "arham"
+    },
+    "vector_index": {
+      "ok": true,
+      "syntax": "CREATE VECTOR INDEX",
+      "attempts": [
+        {
+          "syntax": "CREATE VECTOR INDEX",
+          "sql": "CREATE VECTOR INDEX probe_embedding_idx ON probe (embedding)",
+          "ok": true
+        }
+      ]
+    },
+    "ann_query": {
+      "ok": true,
+      "operator": "<->",
+      "attempts": [
+        {
+          "op": "<->",
+          "ok": true
+        }
+      ]
+    },
+    "memory_atom": {
+      "ok": true,
+      "vector_index_syntax": "CREATE VECTOR INDEX",
+      "attempts": [
+        {
+          "syntax": "CREATE VECTOR INDEX",
+          "sql": "CREATE VECTOR INDEX idx_atom_embedding ON memory_atom (embedding)",
+          "ok": true
+        }
+      ],
+      "indexes": [
+        "INDEX idx_atom_subject_live (workspace_id ASC, subject_key ASC) WHERE valid_to IS NULL",
+        "VECTOR INDEX idx_atom_embedding (embedding vector_l2_ops)"
+      ]
+    },
+    "gc_ttl": {
+      "configure_zone_ok": true,
+      "configure_zone_error": null,
+      "zone_config": [
+        "('TABLE memory_atom', \"ALTER TABLE memory_atom CONFIGURE ZONE USING\\n\\trange_min_bytes = 134217728,\\n\\trange_max_bytes = 536870912,\\n\\tgc.ttlseconds = 90000,\\n\\tnum_replicas = 3,\\n\\tnum_voters = 3,\\n\\tconstraints = '{+region=aws-ap-south-1: 3}',\\n\\tvoter_constraints = '[]',\\n\\tlease_preferences = '[[+region=aws-ap-south-1]]'\")"
+      ],
+      "as_of_system_time": {
+        "-10s": {
+          "ok": true,
+          "rows": 0
+        },
+        "-1h": {
+          "ok": false,
+          "error": "[42P01] relation \"memory_atom\" does not exist",
+          "likely_table_too_young": true
+        }
+      }
+    }
+  },
+  "distance_operator": "<->",
+  "vector_index_syntax": "CREATE VECTOR INDEX"
+}

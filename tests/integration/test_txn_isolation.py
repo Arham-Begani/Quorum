@@ -121,3 +121,43 @@ def test_quorum_never_leaves_two_contradictory_active_atoms(pool, embedder, adju
 
     print(f"\n  {ITERATIONS} races: {outcomes}, 40001 retries={total_retries}")
     assert outcomes["single_active"] + outcomes["contested_pair"] == ITERATIONS
+
+
+def test_the_race_actually_happens_in_naive(pool, embedder):
+    """Proves the flagship test is not vacuous.
+
+    If `naive` under identical conditions never produced the forbidden state,
+    the test above would be passing because the race never occurs, not because
+    serializable isolation prevents it. It does occur, and naive does fail.
+    """
+    forbidden = 0
+    iterations = max(5, ITERATIONS // 5)
+
+    for _ in range(iterations):
+        ws = uuid.uuid4()
+        mem = make_memory("naive", pool, embedder, {"race_delay_ms": RACE_DELAY_MS})
+        _race(mem, ws)
+        active, _ = _final_state(pool, ws)
+        if len({a[1] for a in active}) > 1:
+            forbidden += 1
+        _cleanup(pool, ws)
+
+    assert forbidden > 0, (
+        "naive never produced two contradictory active atoms, so the race window "
+        "is not being exercised and the isolation test above proves nothing. "
+        "Increase QUORUM_ISOLATION_DELAY_MS.")
+    print(f"\n  naive left contradictory memory in {forbidden}/{iterations} races")
+
+
+def test_quorum_records_real_retries_under_contention(pool, embedder, adjudicator):
+    """40001 is the system working. It must be observed, counted, and bounded."""
+    metrics.reset()
+    for _ in range(max(5, ITERATIONS // 3)):
+        ws = uuid.uuid4()
+        mem = make_memory("quorum", pool, embedder, {
+            "adjudicator": adjudicator, "race_delay_ms": RACE_DELAY_MS})
+        _race(mem, ws)
+        _cleanup(pool, ws)
+
+    assert metrics.total_give_ups() == 0, "a write exhausted its retry budget"
+    print(f"\n  observed 40001 retries: {metrics.total_retries()}")

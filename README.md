@@ -69,6 +69,18 @@ python -m quorum.db.migrate           # schema, indexes, GC TTL, agent registry
 python -m quorum.harness.report --all # all 5 scenarios x 3 modes
 ```
 
+Type your own contradictions and watch the memory layer react — nothing in this
+console is scripted, and `mode` swaps the memory layer under the same data:
+
+```bash
+make console
+# > remember lodging_agent hotel.checkin_date = 2026-09-14
+# > remember booking_agent hotel.checkin_date = Sep 15 2026
+#   SUPERSEDE  detected contradiction via tier-1 structural
+#   rule R1: booking_agent (tier 1) outranks lodging_agent (tier 3)
+# > mode naive     ... then enter the same two claims and compare
+```
+
 Reproduce the flagship race on its own:
 
 ```bash
@@ -189,8 +201,12 @@ reported `NOT TESTED` rather than counted either way.
   rehearsed queries: [`quorum/mcp/`](quorum/mcp/).
 - **ccloud CLI** — provisions the cluster and four least-privilege roles mapped
   to agent authority tiers: [`infra/ccloud/provision.sh`](infra/ccloud/provision.sh).
-  The `agent_writer` role gets `UPDATE` on only five columns, which enforces
-  append-only memory as a **grant**, not a convention.
+  The `agent_writer` role is never granted `DELETE`, so the swarm **physically
+  cannot erase a claim** — supersession preserves history because the agent has
+  no other option. (CockroachDB has no column-level privileges, so the narrower
+  "UPDATE only these five columns" restriction is enforced in the supersede path
+  in application code, not by the grant. See
+  [`quorum/mcp/queries.md`](quorum/mcp/queries.md) §7.)
 
 **AWS** — Bedrock (Titan v2 embeddings, Claude as the bounded tier-2
 adjudicator), Lambda (one invocation per agent turn), S3 (run reports),

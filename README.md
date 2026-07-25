@@ -176,3 +176,42 @@ only ANN over a true embedding space can surface the pair. Without Bedrock it is
 reported `NOT TESTED` rather than counted either way.
 
 ---
+
+## What is used, and what it does
+
+**CockroachDB**
+
+- **Distributed vector indexing** — the agent searches the semantic
+  neighbourhood of every claim it is about to write, inside the same transaction
+  that commits it, to find claims it would contradict.
+- **Managed MCP Server** — a human auditor attaches Claude Code to the cluster
+  read-only and interrogates contested memory and blocked actions live. Setup and
+  rehearsed queries: [`quorum/mcp/`](quorum/mcp/).
+- **ccloud CLI** — provisions the cluster and four least-privilege roles mapped
+  to agent authority tiers: [`infra/ccloud/provision.sh`](infra/ccloud/provision.sh).
+  The `agent_writer` role gets `UPDATE` on only five columns, which enforces
+  append-only memory as a **grant**, not a convention.
+
+**AWS** — Bedrock (Titan v2 embeddings, Claude as the bounded tier-2
+adjudicator), Lambda (one invocation per agent turn), S3 (run reports),
+CloudWatch (retry and contradiction counts as custom metrics).
+
+Full write-up: [`docs/SUBMISSION.md`](docs/SUBMISSION.md).
+
+---
+
+## Status
+
+Built and verified against CockroachDB v26.2.1:
+
+- schema, indexes, GC TTL, four-role RBAC script
+- all three memory clients, detection tiers, policy engine
+- five scenarios, single mode-parameterised driver, anomaly detectors
+- 107 tests passing, flagship isolation test green
+- read-only FastAPI surface and static dashboard
+
+Not exercised in this environment: Bedrock, Lambda, S3 and CloudWatch (no AWS
+credentials configured), and the node-kill chaos test (needs a local Docker
+cluster — scripts in [`infra/chaos/`](infra/chaos/)). Those paths are
+implemented and documented; they have not been run here, and the docs say so
+rather than implying otherwise.

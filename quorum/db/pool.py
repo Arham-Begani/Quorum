@@ -35,6 +35,22 @@ def load_env(dotenv_path: str | os.PathLike = ".env") -> None:
     p = Path(dotenv_path)
     if p.exists():
         load_dotenv(p, override=False)
+    _drop_empty_bedrock_token()
+
+
+def _drop_empty_bedrock_token() -> None:
+    """Remove AWS_BEARER_TOKEN_BEDROCK if it is set but blank.
+
+    botocore switches Bedrock to bearer-token auth on the mere PRESENCE of this
+    variable, not on it having a value. A blank one -- which is what you get
+    from a `AWS_BEARER_TOKEN_BEDROCK=` line in .env -- makes it build an
+    Authorization header with no credential and every call fails with
+    IncompleteSignatureException, while perfectly good IAM credentials sit
+    unused. Absent is fine; empty is not.
+    """
+    if "AWS_BEARER_TOKEN_BEDROCK" in os.environ and \
+            not os.environ["AWS_BEARER_TOKEN_BEDROCK"].strip():
+        del os.environ["AWS_BEARER_TOKEN_BEDROCK"]
 
 
 def crdb_url() -> str:

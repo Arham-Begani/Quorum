@@ -56,3 +56,39 @@ ORDER BY l.created_at;
 > here is the one that was wrong."
 
 ---
+
+## 3. "Show the same scenario across all three modes."
+
+The comparison, straight from the database rather than the dashboard.
+
+```sql
+SELECT mode,
+       report->'anomalies'->>'contradictory_active_pairs' AS contradictory,
+       report->'anomalies'->>'wrong_actions'              AS wrong_actions,
+       report->'anomalies'->>'blocked_actions'            AS blocked,
+       report->'performance'->>'txn_retries'              AS retries
+FROM run
+WHERE scenario = 'S5_concurrent_race' AND report IS NOT NULL
+ORDER BY started_at DESC
+LIMIT 3;
+```
+
+---
+
+## 4. "What did memory look like before the booking?"
+
+The forensic read. Requires `gc.ttlseconds` to have been raised at provisioning.
+
+```sql
+SELECT subject_key, object_text, writer_role, status
+FROM memory_atom
+AS OF SYSTEM TIME '-30s'
+WHERE workspace_id = '<WORKSPACE_ID>'
+ORDER BY valid_from;
+```
+
+> "That is not a log we kept. That is the database answering what it actually
+> held at that instant, because memory is append-only and the GC window was
+> raised on day one."
+
+---

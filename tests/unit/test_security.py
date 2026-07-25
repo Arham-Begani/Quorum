@@ -76,3 +76,33 @@ def test_private_visibility_is_not_readable_by_another_agent(pool, embedder):
                           subject_keys=["trip:1:hotel.checkin_date"]) == []
     finally:
         _cleanup(pool, ws)
+
+
+def test_contested_atoms_are_returned_but_flagged_never_dropped(pool, embedder):
+    """Contested memory must never silently disappear from a read. [I5]"""
+    ws = uuid.uuid4()
+    mem = make_memory("quorum", pool, embedder, {})
+    try:
+        mem.remember(_claim(ws, value="2026-09-14", agent="ground-1",
+                            role="ground_agent"))
+        mem.remember(_claim(ws, value="2026-09-15", agent="ground-2",
+                            role="ground_agent"))
+        agent = AgentCtx("ground-1", "ground_agent", 3)
+        got = mem.recall("", agent=agent, workspace_id=ws,
+                         subject_keys=["trip:1:hotel.checkin_date"])
+        statuses = {a.status for a in got}
+        assert "contested" in statuses, (
+            "contested atoms were dropped from recall instead of flagged")
+        assert len(got) == 2
+    finally:
+        _cleanup(pool, ws)
+
+
+def _cleanup(pool, *workspaces):
+    with pool.connection() as conn:
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            for ws in workspaces:
+                cur.execute("DELETE FROM memory_atom WHERE workspace_id=%s", (ws,))
+                cur.execute("DELETE FROM memory_conflict WHERE workspace_id=%s", (ws,))
+                cur.execute("DELETE FROM action_log WHERE workspace_id=%s", (ws,))

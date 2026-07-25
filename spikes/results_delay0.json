@@ -1,0 +1,95 @@
+{
+  "spike": "M2_prove_race",
+  "cluster_version": "CockroachDB CCL v26.2.1 (x86_64-pc-linux-gnu, built 2026/05/21 21:07:32, go1.25.5)",
+  "vector_index_syntax": "USING cspann (pre-existing)",
+  "distance_operator": "<->",
+  "config": {
+    "iterations": 200,
+    "delay_ms": 0,
+    "delay_note": "artificial read->write window, applied identically in all three modes, disclosed per BUILD.md \u00a72.4",
+    "ann_k": 8,
+    "writers_per_iteration": 2,
+    "seed": 1337,
+    "subject_key": "trip:1:hotel.checkin_date",
+    "claim_a": {
+      "role": "lodging_agent",
+      "json": {
+        "date": "2026-09-14"
+      },
+      "text": "check-in is 2026-09-14"
+    },
+    "claim_b": {
+      "role": "booking_agent",
+      "json": {
+        "date": "2026-09-15"
+      },
+      "text": "check-in is 2026-09-15"
+    },
+    "embedder": "spikes/fake_embed.py (deterministic synthetic, spike-only)"
+  },
+  "modes": {
+    "naive": {
+      "iterations": 200,
+      "contradictory_pairs": 200,
+      "total_contradictory_pairs_counted": 200,
+      "rate_pct": 100.0,
+      "retries_40001": 0,
+      "give_ups": 0,
+      "errors": 0,
+      "error_samples": [],
+      "p50_ms": 141.09,
+      "p95_ms": 237.25,
+      "resolutions": {
+        "inserted": 400
+      },
+      "final_active_atom_histogram": {
+        "2": 200
+      }
+    },
+    "txn_only": {
+      "iterations": 200,
+      "contradictory_pairs": 200,
+      "total_contradictory_pairs_counted": 200,
+      "rate_pct": 100.0,
+      "retries_40001": 0,
+      "give_ups": 0,
+      "errors": 0,
+      "error_samples": [],
+      "p50_ms": 121.72,
+      "p95_ms": 306.94,
+      "resolutions": {
+        "inserted": 400
+      },
+      "final_active_atom_histogram": {
+        "2": 200
+      }
+    },
+    "quorum": {
+      "iterations": 200,
+      "contradictory_pairs": 0,
+      "total_contradictory_pairs_counted": 0,
+      "rate_pct": 0.0,
+      "retries_40001": 200,
+      "give_ups": 0,
+      "errors": 0,
+      "error_samples": [],
+      "p50_ms": 373.02,
+      "p95_ms": 707.36,
+      "resolutions": {
+        "superseded_then_inserted": 200,
+        "inserted": 200
+      },
+      "final_active_atom_histogram": {
+        "1": 200
+      }
+    }
+  },
+  "gate": {
+    "naive_shows_contradictions": true,
+    "txn_only_shows_contradictions": true,
+    "quorum_zero_contradictions": true,
+    "quorum_real_40001_retries": true,
+    "no_unexplained_errors": true
+  },
+  "gate_passed": true
+}

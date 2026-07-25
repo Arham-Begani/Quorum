@@ -98,3 +98,15 @@ CREATE TABLE IF NOT EXISTS memory_provenance (
   relation        STRING NOT NULL,
   PRIMARY KEY (derived_atom_id, source_atom_id)
 );
+
+CREATE TABLE IF NOT EXISTS run (
+  run_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mode       STRING NOT NULL,          -- naive|txn_only|quorum
+  scenario   STRING NOT NULL,
+  seed       INT    NOT NULL,
+  workspace_id UUID,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ended_at   TIMESTAMPTZ,
+  report     JSONB,
+  CONSTRAINT ck_mode CHECK (mode IN ('naive','txn_only','quorum'))
+);

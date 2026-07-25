@@ -66,3 +66,62 @@ it performs no check, so it must fail. Do not present it as a discovery. The
 falsifiable results are naive's failure and quorum's zero.
 
 ---
+
+## 3. What `naive` actually does, and why it is a fair baseline
+
+If the baseline is unfair the whole comparison is worthless, so here is exactly
+what it is.
+
+`naive` is what a competent engineer actually builds on a vector store:
+
+- embed the claim, ANN-search for similar memories
+- **it does run a conflict check** — an exact-value dedup on the same attribute,
+  which is the dedup everyone writes
+- otherwise append
+- read and write are **separate autocommitted operations**
+
+What it does not have — because these are the novel parts of this project, not
+oversights — is an authority-tier policy engine, supersession, a contested
+state, or an action gate. A vector memory store has no notion of which agent
+outranks which.
+
+Two independent failure modes follow, and the harness distinguishes them:
+
+1. **Semantic** — different values are not duplicates, so both get appended.
+   Happens with no concurrency at all.
+2. **Race** — the read and the write are not atomic, so even the dedup check
+   misses a writer that lands in between.
+
+**We give the baseline the best case it could possibly have.** Its vector index
+and its rows are the same CockroachDB database, so it does not pay the
+cross-store replication lag a real Pinecone + Postgres deployment would. A real
+separate-store deployment is strictly worse than what is measured here.
+
+### Two baselines, deliberately
+
+`spikes/prove_race.py` uses a *stronger* naive than the product does: there,
+naive shares the **full** detection and resolution code with quorum, and the
+only difference is `autocommit=True` versus `run_txn`. That isolates one
+variable — the transaction — and answers "is the transaction necessary?" (yes:
+even a naive with complete detection fails).
+
+The product's `naive` (`quorum/memory/naive.py`) is the realistic stack and
+answers a different question: "does what people actually build fail?" (yes,
+and for two reasons rather than one).
+
+Both are documented because they answer different questions. Neither is the
+strawman.
+
+---
+
+## 4. What `txn_only` is
+
+CockroachDB used exactly as designed. Same storage as quorum, same serializable
+transactions, same retry wrapper. Zero lost updates, zero dirty reads, zero
+write skew. Every write is a plain `INSERT` with no classification and no policy.
+
+This is the most important column in the project. It is the answer to "isn't this
+just the database working as designed?" — it *is* the database working as
+designed, and it still produces the wrong booking.
+
+---

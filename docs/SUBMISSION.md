@@ -75,3 +75,39 @@ a **grant**, not as a convention in application code.
 - `infra/ccloud/provision.sh`
 
 ---
+
+## AWS services
+
+### Bedrock
+
+- **Titan v2** embeds every claim (`subject_key + predicate + object_text`) into
+  the `VECTOR(1024)` column that the neighbourhood search runs over.
+  `quorum/embed/bedrock.py`, with a content-hash disk cache (`quorum/embed/cache.py`)
+  because agents re-assert the same claims constantly.
+- **Claude** is the bounded tier-2 contradiction adjudicator — used only for
+  pairs that the deterministic tier-1 classifier could not decide and that sit
+  above a similarity threshold. Temperature 0, strict JSON, hard timeout, hard
+  call budget, and it **fails closed to `contradiction`** on timeout, parse
+  failure or throttle. A false contest is safe and visible; a missed
+  contradiction is the exact failure this project exists to prevent.
+  `quorum/detect/tier2.py`, prompt versioned in `quorum/detect/prompts.py`.
+
+The LLM is deliberately a *classifier of last resort*, never the resolver.
+Resolution is rule-based and explainable (`quorum/policy/rules.py`).
+
+### Lambda
+
+One invocation per agent turn; the swarm is a fan-out. This is what makes
+concurrency genuine rather than simulated. `infra/lambda/`.
+
+### S3
+
+Run reports, traces and scenario artifacts under one prefix.
+`quorum/harness/report.py::maybe_upload_s3`.
+
+### CloudWatch
+
+`txn_retries`, `contradictions_detected` and `blocked_actions` exported as
+custom metrics. `infra/lambda/metrics.py`.
+
+---

@@ -140,3 +140,94 @@ def atom_from_row(row: tuple, *, with_distance: bool = False) -> Atom:
     vals = row[:n]
     distance = row[n] if with_distance and len(row) > n else None
     return Atom(*vals, distance=distance)  # type: ignore[arg-type]
+
+
+@dataclass(frozen=True)
+class ConflictRecord:
+    """One detection. Written to memory_conflict whether or not it was a problem."""
+
+    existing_atom_id: uuid.UUID
+    subject_key: str
+    detector: str
+    verdict: str
+    resolution: str
+    similarity: float | None = None
+    policy_rule: str | None = None
+    rationale: str | None = None
+    adjudicator_ms: int | None = None
+    incoming_atom_id: uuid.UUID | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "existing_atom_id": str(self.existing_atom_id),
+            "incoming_atom_id": str(self.incoming_atom_id) if self.incoming_atom_id else None,
+            "subject_key": self.subject_key,
+            "detector": self.detector,
+            "verdict": self.verdict,
+            "resolution": self.resolution,
+            "similarity": self.similarity,
+            "policy_rule": self.policy_rule,
+            "rationale": self.rationale,
+            "adjudicator_ms": self.adjudicator_ms,
+        }
+
+
+@dataclass(frozen=True)
+class RememberResult:
+    atom_id: uuid.UUID | None
+    resolution: str
+    policy_rule: str | None = None
+    conflicts: tuple[ConflictRecord, ...] = ()
+    retries: int = 0
+    latency_ms: float = 0.0
+    error: str | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "atom_id": str(self.atom_id) if self.atom_id else None,
+            "resolution": self.resolution,
+            "policy_rule": self.policy_rule,
+            "conflicts": [c.to_dict() for c in self.conflicts],
+            "retries": self.retries,
+            "latency_ms": round(self.latency_ms, 1),
+            "error": self.error,
+        }
+
+
+@dataclass(frozen=True)
+class Action:
+    """Something with an external effect. Everything an agent actually DOES."""
+
+    workspace_id: uuid.UUID
+    agent_id: str
+    action_type: str
+    payload: dict
+    required_keys: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class GateResult:
+    gate_result: str
+    justifying_atom_ids: tuple[uuid.UUID, ...] = ()
+    executed: bool = False
+    outcome: str | None = None
+    blocked_keys: tuple[str, ...] = ()
+    reason: str | None = None
+
+    @property
+    def allowed(self) -> bool:
+        return self.gate_result == Gate.ALLOWED
+
+    def to_dict(self) -> dict:
+        return {
+            "gate_result": self.gate_result,
+            "justifying_atom_ids": [str(i) for i in self.justifying_atom_ids],
+            "executed": self.executed,
+            "outcome": self.outcome,
+            "blocked_keys": list(self.blocked_keys),
+            "reason": self.reason,
+        }
+
+
+def json_or_none(value: Any) -> str | None:
+    return None if value is None else json.dumps(value, sort_keys=True)

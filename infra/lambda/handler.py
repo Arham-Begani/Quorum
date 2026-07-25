@@ -88,3 +88,29 @@ def handler(event, context):
 
 def _role_of(agent_id: str) -> str:
     return agent_id.rsplit("-", 1)[0] + "_agent"
+
+
+def _emit_cloudwatch(mode: str) -> None:
+    """Export the numbers that make retry behaviour visible in production."""
+    namespace = os.environ.get("CLOUDWATCH_NAMESPACE")
+    if not namespace:
+        return
+    try:
+        import boto3
+        snap = metrics.snapshot()
+        boto3.client("cloudwatch").put_metric_data(
+            Namespace=namespace,
+            MetricData=[
+                {"MetricName": "txn_retries", "Value": snap["txn_retries"],
+                 "Unit": "Count", "Dimensions": [{"Name": "mode", "Value": mode}]},
+                {"MetricName": "txn_give_ups", "Value": snap["txn_give_ups"],
+                 "Unit": "Count", "Dimensions": [{"Name": "mode", "Value": mode}]},
+                {"MetricName": "write_p50_ms", "Value": snap["p50_write_ms"],
+                 "Unit": "Milliseconds", "Dimensions": [{"Name": "mode", "Value": mode}]},
+                {"MetricName": "adjudicator_calls", "Value": snap["adjudicator_calls"],
+                 "Unit": "Count", "Dimensions": [{"Name": "mode", "Value": mode}]},
+            ],
+        )
+    except Exception:
+        # Telemetry must never break a write path.
+        pass

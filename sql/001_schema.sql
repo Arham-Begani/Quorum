@@ -80,3 +80,13 @@ CREATE TABLE IF NOT EXISTS action_log (
   CONSTRAINT ck_gate CHECK (gate_result IN
     ('allowed','blocked_contested','blocked_missing','blocked_ambiguous'))
 );
+
+-- agent_registry -- authority tiers. Lower is more authoritative.
+CREATE TABLE IF NOT EXISTS agent_registry (
+  agent_id          STRING PRIMARY KEY,
+  role              STRING   NOT NULL,
+  authority_tier    INT      NOT NULL,
+  visibility_scopes STRING[] NOT NULL DEFAULT ARRAY['workspace'],
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_tier CHECK (authority_tier BETWEEN 1 AND 4)
+);

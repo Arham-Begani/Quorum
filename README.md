@@ -114,3 +114,65 @@ make lint          # asserts no mode branching outside factory.py (I8)
   every policy rule and ordering edge, cross-workspace isolation.
 
 ---
+
+## How it works
+
+```
+Phase A — prepare (OUTSIDE any transaction, no locks held)
+    embed the claim · probe the semantic neighbourhood
+    tier-1 structural classify · bounded tier-2 adjudication where needed
+
+Phase B — commit (INSIDE one serializable transaction)
+    re-read the neighbourhood AUTHORITATIVELY
+    reconcile against the probe · resolve via the policy engine
+    insert / supersede / contest · log every detection
+```
+
+Every network call is in Phase A, so no transaction is ever held open across
+unbounded latency. Every decision that counts is made in Phase B, where the
+neighbourhood read and the write are atomic.
+
+**The probe is advisory. The in-transaction read is authoritative.** If a
+concurrent writer changed the neighbourhood in between, either our
+in-transaction read sees it, or the transaction fails with 40001 and retries
+into a world where it does. There is no window where two contradictory facts
+both slip through.
+
+### Resolution policy
+
+Ordered rules, first match wins, each a pure function:
+
+| rule | fires when | outcome |
+|---|---|---|
+| R1 authority | writers have different authority tiers | supersede / reject |
+| R2 evidence | corroboration differs by `EVIDENCE_MARGIN` | supersede / reject |
+| R3 recency | same tier, newer claim materially more confident | supersede |
+| R4 contest | otherwise | **mark both contested, block dependent actions** |
+
+R4 is not a failure mode, it is the safety net. A system that declines to guess
+and escalates to a human is more trustworthy than one that always has an answer.
+
+### Architecture
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The consistency guarantees,
+the fairness of the baseline, and every deliberate deviation from spec are in
+[`docs/CONSISTENCY_MODEL.md`](docs/CONSISTENCY_MODEL.md) — read that one before
+deciding whether to believe the numbers.
+
+---
+
+## Canonical scenarios
+
+| id | contradiction | tier | quorum resolution | failure if unguarded |
+|---|---|---|---|---|
+| `S1_checkin_date` | lodging plans Sep 14; booking confirms Sep 15 | 1 | supersede via R1 | hotel booked for the wrong night |
+| `S2_budget_ceiling` | $2,400 ceiling vs inferred "flexible on price" | 2 | reject via R1 | booking exceeds policy |
+| `S3_ground_overlap` | two ground agents, one transfer slot | 1 | **contest via R4** | double-booked transfer |
+| `S4_preference_reversal` | prefers email, then opts out | 2 | supersede via R3 | emails after opt-out |
+| `S5_concurrent_race` | contradictory dates written **simultaneously** | 1 | **contest**, after a real 40001 | memory holds two truths |
+
+`S2` requires real semantic embeddings — its claims share no subject key, so
+only ANN over a true embedding space can surface the pair. Without Bedrock it is
+reported `NOT TESTED` rather than counted either way.
+
+---

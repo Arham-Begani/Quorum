@@ -39,10 +39,15 @@ the operation cannot be made atomic at all.
 - `quorum/memory/base.py::_neighbourhood` — the ANN search, unioned with an exact `subject_key` lookup so a structural match is never missed to ANN recall
 - `quorum/memory/quorum.py::_commit` — that search running inside `run_txn`
 
-*Honest limit:* at demo row counts the planner prefers a full scan over the
-vector index, which is a correct cost decision. Detection at this scale is
-carried by the exact-key branch. We have not measured the index doing work at a
-scale where the planner prefers it. See `docs/CONSISTENCY_MODEL.md` §8.
+*Measured, not assumed:* `tools/bench_vector_index.py` seeds 10,000 atoms and
+reports the plan, the latency and the recall. The first run found the optimiser
+ignoring the index entirely — the ANN and brute-force plans were identical —
+because `status IN (...)` inside the ANN subquery is a predicate the index
+cannot cover. Making the index partial on `valid_to IS NULL` and moving the
+status filter outside the subquery fixed it: **2.5x faster than a forced scan
+at p50**, with recall@8 of 77% at `vector_search_beam_size = 64`, where the
+8th-nearest neighbour is only 0.16% farther than exact. Full write-up in
+`docs/CONSISTENCY_MODEL.md` §8.
 
 ### Cloud Managed MCP Server
 
@@ -168,8 +173,8 @@ memory with no contradiction control. The failures are not hypothetical: wrong
 booking, policy breach, contacting someone after they opted out.
 
 **Product readiness.** Four least-privilege roles, a read-only audited auditor
-path, column-scoped `UPDATE` grants enforcing append-only at the database level,
-bounded and surfaced retries, cost and latency measured per run, negative tests
+path, no `DELETE` grant to the agent role so memory cannot be erased at the
+database level, bounded and surfaced retries, cost and latency measured per run, negative tests
 for cross-workspace leakage, and a CI lint that fails the build if the three
 modes ever stop being the same experiment.
 

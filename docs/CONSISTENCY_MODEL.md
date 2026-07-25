@@ -244,25 +244,94 @@ real classification.
 
 ---
 
-## 8. Known limits of the vector index
+## 8. The vector index, measured
 
-`sql/002_indexes.sql` declares `CREATE VECTOR INDEX idx_atom_embedding ON
-memory_atom (workspace_id, embedding)` — a C-SPANN index with `workspace_id` as
-a prefix column, verified to create successfully on v26.2.1.
+`sql/002_indexes.sql` declares a **partial** C-SPANN index:
 
-**At demo scale the planner does not use it.** With a handful of rows per
-workspace, `EXPLAIN` shows a full scan plus top-k, which is a correct
-cost-based decision, not a capability gap. Detection at this scale is carried by
-the exact `subject_key` branch of the neighbourhood query — which is exactly why
-`BUILD.md` §4.6 insists on unioning the exact lookup rather than relying on ANN
-alone.
+```sql
+CREATE VECTOR INDEX idx_atom_embedding_live
+  ON memory_atom (workspace_id, embedding)
+  WHERE valid_to IS NULL;
+```
 
-The honest statement: the vector index is necessary for the general case
-(cross-key semantic contradiction, S2) and is provably correct, but this
-submission has not measured it doing work at a scale where the planner prefers
-it. That measurement is the first thing to do with more time.
+Both the prefix column and the partial predicate are load-bearing, and we
+learned that the hard way. `tools/bench_vector_index.py` reproduces all of it.
 
----
+### The index was not being used at all
+
+The first benchmark, at 10,000 atoms in one workspace, found the optimiser
+choosing a **full scan plus top-k** — the ANN and brute-force plans came out
+byte-identical, 0.98x "speedup", and a meaningless 100% recall because both
+sides were doing exact search.
+
+The cause was not scale. It was the query. Narrowing it down:
+
+| query shape | index used |
+|---|---|
+| `workspace_id` + `valid_to IS NULL` + `status IN (...)` | no — full scan |
+| `workspace_id` only | **yes** |
+| no filter at all | no — the prefix column needs an equality |
+| `workspace_id` + `valid_to`, `status` filtered outside | **yes** |
+
+A vector index can only serve predicates it covers. `status IN (...)` sat
+inside the ANN subquery, so CockroachDB could not satisfy it from the index and
+fell back to scanning. The fix is in two parts: make the index **partial** on
+`valid_to IS NULL` so that predicate is covered, and move the `status` filter
+**outside** the ANN subquery, over an over-fetched candidate set (4x k). The
+only live rows this discards are `rejected` ones, which are rare.
+
+### After the fix
+
+```
+• vector search
+  table: memory_atom@idx_atom_embedding_live (partial index)
+  target count: 32
+  prefix spans: [workspace_id - workspace_id]
+```
+
+| | ANN (index) | brute force (forced scan) |
+|---|---|---|
+| p50 | 202 ms | 510 ms |
+| p95 | 345 ms | 749 ms |
+
+**2.5x faster at p50** on 10k atoms, and the gap widens with row count because
+brute force is linear.
+
+### Recall, and why the headline number understates it
+
+C-SPANN is approximate, and its search effort is the session variable
+`vector_search_beam_size` (CockroachDB default 32). Measured against exact
+nearest neighbours:
+
+| beam | recall@8 | 8th-neighbour distance vs exact |
+|---|---|---|
+| 8 | 30% | 1.0095x |
+| 32 (default) | 55% | 1.0042x |
+| **64 (ours)** | **77%** | **1.0016x** |
+
+The ID-overlap column looks alarming and the distance column explains why it
+should not. The benchmark's synthetic embeddings cluster ~10 claims around each
+subject anchor, so neighbours ranked 8 through 32 are nearly equidistant;
+swapping one for another changes semantic distance by **0.16%**. For generating
+conflict *candidates* that is immaterial — the candidate set is still full of
+genuinely near claims.
+
+We run beam 64 (`VECTOR_SEARCH_BEAM_SIZE`, applied as a session option in
+`quorum/db/pool.py`). That trades speedup — 2.5x instead of 3.9x at beam 32 —
+for recall, deliberately: a contradiction detector that misses a candidate
+fails **silently**, which is the worst failure mode this system has.
+
+### What ANN recall does and does not put at risk
+
+Tier-1 structural detection **does not depend on ANN recall at all**. The
+neighbourhood query unions an exact `subject_key` lookup served by
+`idx_atom_subject_live`, so a same-key contradiction is found even if the
+vector index returns nothing useful. That union is not belt-and-braces; it is
+what makes the guarantee in §5 hold.
+
+ANN recall is what bounds detection of contradictions that do **not** share a
+subject key — the S2 case. There, recall is a real limit and it is stated as
+one in §5.
 
 ## 9. Tuning knobs and their tradeoffs
 

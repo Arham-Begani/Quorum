@@ -1,9 +1,14 @@
-"""Embedder — Bedrock Titan v2, with cache, backoff, and an offline fallback.
-
-Provider selection is explicit and always reported:
+"""Embedder — one interface over three providers, in descending quality.
 
     bedrock_titan      real Titan v2 via boto3 (needs AWS credentials)
-    synthetic_offline  deterministic stand-in (quorum/embed/synthetic.py)
+    local_onnx         a real semantic model on CPU (quorum/embed/local.py)
+    synthetic_offline  hash-based stand-in, NOT semantic (embed/synthetic.py)
+
+The distinction that matters is `is_semantic`, not "is it cloud". The first two
+place semantically related claims near each other, so a contradiction between
+claims that share no subject_key can still be surfaced. The third cannot, by
+construction -- which is exactly why a scenario depending on that capability is
+reported as untested rather than failed when it is in use.
 
 `Embedder.provider` is written into every run report so a result can never be
 mistaken for one it isn't. Nothing here silently degrades.
@@ -18,7 +23,7 @@ import time
 
 from ..db.metrics import metrics
 from .cache import EmbeddingCache, cache_key
-from . import synthetic
+from . import local, synthetic
 
 DEFAULT_MODEL_ID = "amazon.titan-embed-text-v2:0"
 DEFAULT_DIM = 1024
@@ -57,35 +62,88 @@ class Embedder:
         cache: EmbeddingCache | None = None,
         force_offline: bool = False,
     ):
+        # Load .env here too. Constructing an Embedder standalone otherwise sees
+        # no credentials and quietly picks a lesser provider, while the same
+        # object inside the harness -- where make_pool() has already loaded the
+        # file -- picks Bedrock. Same code, different provider, depending on
+        # what else happened to run first.
+        from ..db.pool import load_env
+        load_env()
         self.model_id = model_id or os.environ.get("BEDROCK_EMBED_MODEL_ID", DEFAULT_MODEL_ID)
         self.dim = int(dim or os.environ.get("BEDROCK_EMBED_DIM", DEFAULT_DIM))
         self.region = region or os.environ.get("AWS_REGION", "us-east-1")
         self.cache = cache if cache is not None else EmbeddingCache()
         self._client = None
+        self.selection_error: str | None = None
         self.provider = synthetic.PROVIDER_NAME if force_offline else self._select_provider()
 
     def _select_provider(self) -> str:
+        """bedrock_titan > local_onnx > synthetic_offline.
+
+        Preference order is quality of semantic space. The synthetic provider is
+        last because it is not a semantic model at all -- it cannot place two
+        claims near each other unless they already share a subject_key, which is
+        the single capability cross-key contradiction detection depends on.
+        """
+        forced = os.environ.get("EMBED_PROVIDER", "").strip()
+        if forced == "local":
+            return local.PROVIDER_NAME
+        if forced == "synthetic":
+            return synthetic.PROVIDER_NAME
+
+        if forced != "bedrock":
+            pass  # fall through to auto-detection
         try:
             import boto3
-            from botocore.exceptions import BotoCoreError, NoCredentialsError
-        except ImportError:
-            return synthetic.PROVIDER_NAME
-        try:
             session = boto3.session.Session(region_name=self.region)
-            if not has_bedrock_auth(session):
-                return synthetic.PROVIDER_NAME
-            self._client = session.client("bedrock-runtime")
-            return "bedrock_titan"
-        except (BotoCoreError, NoCredentialsError, Exception):
-            return synthetic.PROVIDER_NAME
+            if has_bedrock_auth(session):
+                self._client = session.client("bedrock-runtime")
+                # Credentials existing is NOT the same as the service working.
+                # A valid IAM key on an account without Bedrock entitlement
+                # authenticates fine and refuses every invoke, so selecting on
+                # credentials alone reports `bedrock_titan` in the run report
+                # while nothing is actually embedded. Prove it end to end.
+                self._probe()
+                return "bedrock_titan"
+        except Exception as exc:
+            self._client = None
+            self.selection_error = f"{type(exc).__name__}: {str(exc)[:140]}"
+        if forced == "bedrock":
+            return "bedrock_titan"      # explicit request: fail loudly, not silently
+        if local.available():
+            return local.PROVIDER_NAME
+        return synthetic.PROVIDER_NAME
+
+    def _probe(self) -> None:
+        """One real embedding call. Raises if Bedrock is not actually usable."""
+        resp = self._client.invoke_model(  # type: ignore[union-attr]
+            modelId=self.model_id,
+            body=json.dumps({"inputText": "probe", "dimensions": self.dim,
+                             "normalize": True}),
+            accept="application/json", contentType="application/json",
+        )
+        json.loads(resp["body"].read())["embedding"]
 
     @property
     def is_offline(self) -> bool:
+        """True when embeddings are NOT a real semantic space.
+
+        `local_onnx` is offline in the sense of needing no cloud account, but it
+        IS a semantic model, so it is not "offline" for the purpose of deciding
+        whether a cross-key scenario can be tested.
+        """
         return self.provider == synthetic.PROVIDER_NAME
+
+    @property
+    def is_semantic(self) -> bool:
+        return self.provider in ("bedrock_titan", local.PROVIDER_NAME)
 
     # -- public ---------------------------------------------------------
     def embed(self, text: str) -> tuple[float, ...]:
-        key = cache_key(text, self.model_id if not self.is_offline else self.provider, self.dim)
+        # Key on the PROVIDER as well as the model: vectors from different
+        # providers live in incomparable spaces, and serving one for the other
+        # would silently corrupt every distance in the system.
+        key = cache_key(text, f"{self.provider}:{self.model_id}", self.dim)
         hit = self.cache.get(key)
         if hit is not None:
             if len(hit) != self.dim:
@@ -95,9 +153,11 @@ class Embedder:
                 )
             return hit
 
-        if self.is_offline:
+        if self.provider == synthetic.PROVIDER_NAME:
             vec = synthetic.embed(text, self.dim)
             metrics.count_embed(0.0, tokens=0)
+        elif self.provider == local.PROVIDER_NAME:
+            vec = local.embed(text, self.dim)
         else:
             vec = self._embed_bedrock(text)
 
@@ -141,10 +201,20 @@ class Embedder:
         raise EmbeddingError(f"Bedrock embedding failed: {last_exc!r}") from last_exc
 
     def info(self) -> dict:
-        return {
+        out = {
             "provider": self.provider,
-            "model_id": self.model_id if not self.is_offline else None,
             "dim": self.dim,
-            "region": self.region if not self.is_offline else None,
+            "is_semantic": self.is_semantic,
             "cache": self.cache.stats(),
         }
+        if self.selection_error:
+            out["bedrock_unavailable"] = self.selection_error
+        if self.provider == "bedrock_titan":
+            out |= {"model_id": self.model_id, "region": self.region}
+        elif self.provider == local.PROVIDER_NAME:
+            out |= {"model_id": local.DEFAULT_MODEL, "native_dim": local.native_dim(),
+                    "note": "zero-padded to the column width; cosine is preserved exactly"}
+        else:
+            out |= {"model_id": None,
+                    "note": "NOT a semantic model; cross-key detection is untestable"}
+        return out

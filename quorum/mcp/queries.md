@@ -117,17 +117,32 @@ ORDER BY count DESC;
 
 ---
 
-## 7. The narrowed UPDATE grant, shown live
+## 7. Least-privilege grants, shown live
 
-Enforcing invariant I4 at the database level, not just in application code.
+Half of invariant I4 is a database guarantee: the swarm has no way to erase a
+claim, because `agent_writer` was never granted `DELETE`.
 
 ```sql
-SELECT grantee, privilege_type, column_name
-FROM information_schema.column_privileges
-WHERE table_name = 'memory_atom' AND grantee = 'agent_writer'
-ORDER BY column_name;
+SHOW GRANTS ON TABLE memory_atom;
 ```
 
-> "The agent role can only ever update `valid_to`, `superseded_by`, `status`,
-> `evidence_count` and `confidence`. It cannot rewrite what a claim said. The
-> append-only guarantee is a grant, not a convention."
+> "Four roles, not one superuser. `agent_writer` can select, insert and update —
+> and that is all. There is no `DELETE` grant, so the swarm physically cannot
+> erase a memory. Supersession preserves history because the agent has no other
+> option. And `auditor`, the role this MCP session is running as, holds `SELECT`
+> and nothing else."
+
+**Do not** claim the `UPDATE` is scoped to five columns. CockroachDB does not
+implement column-level privileges — verified against v26.2.1, which rejects a
+column list in `GRANT` outright. `information_schema.column_privileges` will
+happily show you a row per column, but that is the table-level grant expanded
+across all 18 columns, so quoting it on camera would contradict the narration.
+The five-column restriction is real, but it lives in the supersede path in
+`quorum/memory/quorum.py`, not in the grant.
+
+To show the auditor's read-only posture directly:
+
+```sql
+UPDATE memory_atom SET status = 'active' WHERE false;
+-- ERROR: user auditor does not have UPDATE privilege on relation memory_atom
+```

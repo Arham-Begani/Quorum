@@ -127,15 +127,22 @@ CREATE USER auditor;           -- READ ONLY, used by the MCP server
 CREATE USER quorum_admin;      -- migrations only
 
 GRANT SELECT, INSERT ON TABLE memory_atom, memory_conflict TO agent_writer;
-GRANT UPDATE (valid_to, superseded_by, status, evidence_count, confidence)
-  ON TABLE memory_atom TO agent_writer;   -- narrow: supersession only, no rewrites
+GRANT UPDATE ON TABLE memory_atom TO agent_writer;   -- deliberately NO DELETE
 GRANT SELECT, INSERT ON TABLE action_log TO gate_service;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO auditor;
 ```
 
-The narrowed `UPDATE` grant is worth calling out in the video — it enforces
-invariant I4 at the database level, not just in application code. That is the
-difference between "we thought about security" and "we implemented it."
+The **absent** `DELETE` grant is worth calling out in the video — the swarm
+cannot erase a claim, so half of invariant I4 holds at the database level rather
+than by convention. That is the difference between "we thought about security"
+and "we implemented it."
+
+> Do not promise a column-scoped `UPDATE` here. CockroachDB has no column-level
+> privileges (v26.2.1 rejects the column list outright), and
+> `information_schema.column_privileges` expands the table grant across every
+> column — so a live query would show `UPDATE` on all 18 and contradict you.
+> Restricting writes to the five supersession columns is done in application
+> code.
 
 Also create a ccloud service account + API key for the CLI-driven parts:
 ```bash
@@ -720,7 +727,7 @@ credibility.
 - [ ] `naive` documented as a fair baseline in `docs/CONSISTENCY_MODEL.md`
 
 **Production readiness**
-- [ ] four distinct DB roles; auditor is read-only; narrowed UPDATE grant in place
+- [ ] four distinct DB roles; auditor is read-only; `agent_writer` has no DELETE grant
 - [ ] cross-workspace read returns zero rows (negative test)
 - [ ] node-kill run completes with zero anomalies
 - [ ] retry counts bounded and surfaced, never hidden

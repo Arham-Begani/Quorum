@@ -36,10 +36,19 @@ echo "    cluster id: ${CLUSTER_ID}"
 
 # ---------------------------------------------------------------------------
 # Per-role service accounts. One SQL user per authority boundary, never one
-# superuser for everything. The narrowed UPDATE grant below is the part worth
-# calling out on camera: it enforces invariant I4 -- memory is append-only --
-# at the DATABASE level, not merely in application code. The agent role
-# physically cannot rewrite what a claim said.
+# superuser for everything.
+#
+# The part worth calling out on camera is what agent_writer is NOT granted:
+# there is no DELETE on memory_atom, so the swarm physically cannot erase a
+# claim. That half of invariant I4 is a database guarantee.
+#
+# NOTE: an earlier version of this script tried to scope the UPDATE grant to
+# five columns:
+#   GRANT UPDATE (valid_to, superseded_by, status, evidence_count, confidence)
+# CockroachDB does not implement column-level privileges -- verified against
+# v26.2.1, which rejects the column list with a syntax error. The restriction to
+# those five columns is therefore enforced in the supersede path in application
+# code (quorum/memory/quorum.py), not by the grant. Do not claim otherwise.
 # ---------------------------------------------------------------------------
 echo "==> creating roles and grants"
 ccloud cluster sql "${CLUSTER_ID}" --sql "
@@ -53,8 +62,9 @@ CREATE USER IF NOT EXISTS quorum_admin;   -- migrations only
 GRANT CONNECT ON DATABASE ${DB} TO agent_writer, gate_service, auditor, quorum_admin;
 
 GRANT SELECT, INSERT ON TABLE ${DB}.memory_atom, ${DB}.memory_conflict TO agent_writer;
-GRANT UPDATE (valid_to, superseded_by, status, evidence_count, confidence)
-  ON TABLE ${DB}.memory_atom TO agent_writer;
+-- Table-level UPDATE: CockroachDB has no column-level privileges (see note
+-- above). Deliberately NO DELETE -- the swarm cannot erase memory.
+GRANT UPDATE ON TABLE ${DB}.memory_atom TO agent_writer;
 
 GRANT SELECT, INSERT ON TABLE ${DB}.action_log TO gate_service;
 GRANT SELECT ON TABLE ${DB}.memory_atom TO gate_service;

@@ -212,37 +212,74 @@ production there is no "run". Relaxed in `sql/005_run_id_nullable.sql`.
 
 ---
 
-## 7. Running without Bedrock
+## 7. Embedding and adjudication providers
 
-The repository runs end to end with no AWS account, using deterministic offline
-stand-ins. **Every run report records which provider produced it**
-(`providers.embedder.provider`, `providers.tier2.provider`), so a result can
-never be mistaken for one produced by real models.
+Two independent choices, and every run report records both
+(`providers.embedder.provider`, `providers.tier2.provider`) so a result can
+never be mistaken for one produced by different machinery.
 
-| | with Bedrock | offline |
+### Embeddings
+
+| provider | what it is | cross-key detection |
 |---|---|---|
-| embeddings | Titan v2, real semantic space | hash-based vectors grouped by `subject_key` |
-| tier 2 | Claude classifies the pair | **fails closed** to `contradiction` |
+| `bedrock_titan` | Titan v2 via AWS | yes |
+| `local_onnx` | BAAI/bge-small-en-v1.5 through ONNX on CPU | **yes** |
+| `synthetic_offline` | hash-based vectors, NOT a model | **no** |
 
-What the offline mode still proves, because none of it depends on the model:
-the serializable write path, tier-1 structural detection, the policy engine,
-supersession, contest, the action gate, retry behaviour, and the forensic view.
+The property that matters is `is_semantic`, not "is it cloud". The first two
+place semantically related claims near each other; the third cannot, by
+construction, so a scenario that needs that capability is reported **untested**
+rather than passed or failed while it is in use.
 
-What it cannot prove: detection of contradictions between claims that do **not**
-share a subject key. The offline embedder places distinct subject keys
-near-orthogonal by construction, so no candidate pair is ever generated.
-`S2_budget_ceiling` is exactly that case, and it is reported as `NOT TESTED`
-rather than counted as passing or failing — the experiment could not be
-performed. That limitation is also the cleanest demonstration that the vector
-index is load-bearing: remove real embeddings and precisely one scenario stops
-working, and it is the one tier 1 cannot reach.
+The local model emits 384 dimensions and the column is `VECTOR(1024)`. Rather
+than migrate, we **zero-pad**, which is exact rather than approximate:
+appending zeros changes neither the norm nor any dot product, so cosine and L2
+distance between padded vectors are identical to the originals. The index, the
+distance operator and `TAU_ADJUDICATE` all keep working untouched.
 
-Note that with the offline stub, `S4_preference_reversal` reaches the correct
-resolution through the fail-closed path rather than through genuine semantic
-judgement. It gets the right answer for the wrong reason. With Bedrock it is a
-real classification.
+Measured on the S2 pair, whose claims share no subject key:
 
----
+```
+cos(budget ceiling $2400, traveller flexible above $2400) = 0.8633   <- the pair
+cos(budget ceiling $2400, flight number AT103)            = 0.7461   <- unrelated
+TAU_ADJUDICATE = 0.82
+```
+
+That margin is real but not generous. `bge-small` compresses everything into a
+fairly narrow band, so the gap between a genuine semantic pair and an unrelated
+one is about 0.12. Titan v2 separates better. If `TAU_ADJUDICATE` were raised
+to 0.87 the S2 pair would stop being escalated at all.
+
+### Provider selection is proven, not assumed
+
+Selection runs a **real invocation** before claiming a provider. Credentials
+existing is not the same as the service working: a valid IAM key on an account
+without Bedrock entitlement authenticates perfectly and then refuses every
+call. Selecting on credentials alone reported `bedrock_titan` in the run report
+while nothing was actually being embedded — every write failed and every action
+blocked on missing memory. The probe costs one call at start-up and the failure
+reason is recorded in the report rather than swallowed.
+
+### What the fail-closed adjudicator does and does not prove
+
+With no reachable model, tier 2 returns `contradiction` for every pair it is
+asked about. That is the specified failure behaviour, not a simulation of
+judgement, and it has a consequence worth stating plainly:
+
+**S2, S3 and S4 currently reach their documented resolutions with a real
+detection step and a fail-closed verdict.** The embeddings genuinely surface
+the candidate pair — S2's 0.8633 similarity across two different subject keys
+is real semantic work that the synthetic provider could not do — and tier 1
+genuinely abstains. But the verdict that follows is `contradiction` because
+nothing answered, not because a model judged it so. The policy engine then does
+the real work of turning that verdict into REJECT, CONTEST or SUPERSEDE via
+authority, evidence and recency.
+
+So: detection is real, resolution is real, **adjudication is not yet**. With a
+working Bedrock those three scenarios would be judged rather than failed
+closed, and a false-contest rate would become measurable. Until then the tier-2
+numbers in any run report mean "escalated and failed closed", and should be
+read that way.
 
 ## 8. The vector index, measured
 

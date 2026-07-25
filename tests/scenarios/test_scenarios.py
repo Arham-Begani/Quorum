@@ -35,11 +35,12 @@ def results(pool, embedder, adjudicator):
 
 
 def _skip_if_untestable(plan, embedder):
-    if plan.requires_semantic_embeddings and embedder.is_offline:
+    if plan.requires_semantic_embeddings and not embedder.is_semantic:
         pytest.skip(
             f"{plan.id} needs real semantic embeddings: its conflicting claims do "
             "not share a subject_key, so only ANN over a true embedding space can "
-            "surface the pair. Set AWS credentials + BEDROCK_EMBED_MODEL_ID.")
+            "surface the pair. Install fastembed for a local model, or set AWS "
+            "credentials for Bedrock Titan.")
 
 
 @pytest.mark.parametrize("scenario_id", catalog.SCENARIO_IDS)

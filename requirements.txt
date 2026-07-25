@@ -5,9 +5,14 @@ psycopg[binary,pool]>=3.1
 python-dotenv>=1.0
 certifi>=2024.2          # CA bundle; libpq has no usable default trust store on Windows
 
-# AWS / Bedrock. Optional at runtime: without credentials the system falls back
-# to deterministic offline providers and records that fact in every run report.
+# AWS / Bedrock. Optional at runtime: without a working Bedrock the system falls
+# back to a local model and records that fact in every run report.
 boto3>=1.34
+
+# Local embedding provider (ONNX, CPU, no torch). Gives a REAL semantic space
+# with no cloud account, which is what makes cross-key contradiction detection
+# testable offline. See quorum/embed/local.py.
+fastembed>=0.4
 
 # API surface (read-only)
 fastapi>=0.110

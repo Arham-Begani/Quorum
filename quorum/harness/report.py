@@ -41,7 +41,7 @@ def compare(scenario_id: str, *, modes=MODES, seed: int, delay_ms: int,
     return {"scenario": plan.id, "title": plan.title, "tier": plan.tier,
             "description": plan.description,
             "requires_semantic_embeddings": plan.requires_semantic_embeddings,
-            "embedder_offline": bool(embedder is not None and embedder.is_offline),
+            "embedder_offline": bool(embedder is not None and not embedder.is_semantic),
             "wrong_action_note": plan.wrong_action_note,
             "seed": seed, "delay_ms": delay_ms, "modes": reports}
 

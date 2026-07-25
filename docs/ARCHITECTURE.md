@@ -117,9 +117,11 @@ contradictory facts both slip through.
 (`active` / `superseded` / `contested` / `rejected`).
 
 Nothing is ever updated in place except `valid_to`, `superseded_by`, `status`,
-`evidence_count` and `confidence` — and the `agent_writer` grant is scoped to
-exactly those five columns, so append-only is a database guarantee rather than a
-convention.
+`evidence_count` and `confidence`. That restriction lives in the supersede path
+in `quorum/memory/quorum.py`: CockroachDB does not implement column-level
+privileges (verified against v26.2.1), so it cannot be expressed as a grant.
+What *is* a database guarantee is the other half — `agent_writer` holds no
+`DELETE` on `memory_atom`, so a claim can never be erased, only superseded.
 
 `memory_conflict` records every detection with the detector tier, similarity,
 verdict, resolution, which policy rule fired and why. `action_log` records every
@@ -134,7 +136,7 @@ here is the one that was wrong."
 | I1 | no network calls inside a transaction | Phase A/B split; tier-1-only in `_commit` |
 | I2 | neighbourhood read and write in one transaction | `QuorumMemory._commit` |
 | I3 | every write path retry-wrapped | `run_txn`, the only commit path |
-| I4 | memory is append-only | supersede SQL + column-scoped `UPDATE` grant |
+| I4 | memory is append-only | supersede SQL (five-column restriction) + no `DELETE` grant to `agent_writer` |
 | I5 | contested memory never silently resolves | R4 + `_act_gated` + recall flags contested |
 | I6 | every atom carries writer attribution | `NOT NULL` on `writer_agent_id` / `writer_role` |
 | I7 | reads are scoped | `workspace_id` on every query + `_visible_to`; negative test |

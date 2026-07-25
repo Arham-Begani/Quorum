@@ -19,15 +19,15 @@ jobs:
         run: python -m pytest tests/unit -q
 
   # The thesis, expressed as code. Runs against a real CockroachDB.
+  #
+  # CockroachDB deliberately does NOT run as a `services:` container. GitHub
+  # Actions starts service containers with no command, and `services:` has no
+  # `command:` field to supply one — so this image gets nothing and exits
+  # immediately with "mode unset, can be shell, bash, or cockroach command".
+  # The container never becomes healthy and the job dies in "Initialize
+  # containers" before a single step runs. Start it explicitly instead.
   integration:
     runs-on: ubuntu-latest
-    services:
-      crdb:
-        image: cockroachdb/cockroach:latest-v25.2
-        ports: ["26257:26257"]
-        options: >-
-          --health-cmd "curl -f http://localhost:8080/health?ready=1"
-          --health-interval 10s --health-timeout 5s --health-retries 12
     env:
       CRDB_URL: postgresql://root@localhost:26257/defaultdb?sslmode=disable
       QUORUM_ISOLATION_ITERATIONS: "100"
@@ -36,6 +36,33 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
+
+      - name: Start CockroachDB
+        run: |
+          docker run -d --name crdb \
+            -p 26257:26257 -p 8080:8080 \
+            cockroachdb/cockroach:latest-v25.2 \
+            start-single-node --insecure
+          for i in $(seq 1 90); do
+            if curl -sf "http://localhost:8080/health?ready=1" >/dev/null; then
+              echo "cockroach ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::cockroach did not become ready"
+          docker logs crdb
+          exit 1
+
+      # On v25.2 the distributed vector index is gated behind a cluster setting
+      # and `CREATE VECTOR INDEX` fails with "vector indexes are not enabled".
+      # CockroachDB Cloud v26.2 (what the demo runs on) has it on by default,
+      # so this is only needed for the pinned CI version.
+      - name: Enable the distributed vector index
+        run: |
+          docker exec crdb ./cockroach sql --insecure \
+            -e "SET CLUSTER SETTING feature.vector_index.enabled = true;"
+
       - run: pip install -r requirements.txt
       - name: Migrate
         run: python -m quorum.db.migrate

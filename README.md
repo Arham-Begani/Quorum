@@ -222,12 +222,17 @@ Built and verified against CockroachDB v26.2.1:
 
 - schema, indexes, GC TTL, four-role RBAC script
 - all three memory clients, detection tiers, policy engine
-- five scenarios, single mode-parameterised driver, anomaly detectors
-- 107 tests passing, flagship isolation test green
-- read-only FastAPI surface and static dashboard
+- **all five scenarios passing in all three modes — 15/15 checks**
+- 109 tests passing; flagship isolation test green over 100 consecutive races
+- vector index measured: **2.5x faster than a full scan**, 77% recall@8
+- read-only FastAPI surface, static dashboard, live input console
 
-Not exercised in this environment: Bedrock, Lambda, S3 and CloudWatch (no AWS
-credentials configured), and the node-kill chaos test (needs a local Docker
-cluster — scripts in [`infra/chaos/`](infra/chaos/)). Those paths are
-implemented and documented; they have not been run here, and the docs say so
-rather than implying otherwise.
+Not exercised here: **Bedrock** — credentials work and the control plane
+enumerates 122 models, but the account has no runtime entitlement and all 30
+models tried refuse to invoke, so embeddings run locally instead and tier-2
+fails closed (`docs/CONSISTENCY_MODEL.md` §7). **Lambda, S3, CloudWatch** —
+implemented, not deployed. **Node-kill chaos** — the test is written and the
+cluster scripts work; the run needs ~3 GB free and OOM'd on the build machine.
+
+Those are stated rather than implied, and every run report records which
+providers produced it.

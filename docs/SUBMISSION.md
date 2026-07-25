@@ -135,22 +135,32 @@ scopes honestly.
 
 **Implemented but NOT run in this environment:**
 
-- Bedrock, Lambda, S3, CloudWatch — no AWS credentials were configured. The code
-  paths exist and provider selection is explicit; **every run report records
-  which provider produced it** (`providers.embedder.provider`,
-  `providers.tier2.provider`) so no offline result can be mistaken for a Bedrock
-  one.
+- Bedrock, Lambda, S3, CloudWatch. Credentials were configured and the control
+  plane works — 122 models enumerate — but the account has no runtime
+  entitlement, so **every** model refuses to invoke: 22 chat models across
+  Anthropic, Mistral, Qwen, Google, Meta, Nova, DeepSeek and AI21, and 8
+  embedding models, all `Operation not allowed`. Provider selection now proves
+  reachability with a real invocation before claiming a provider, and every run
+  report records which one produced it.
+- **Embeddings run locally instead** (`quorum/embed/local.py`, ONNX
+  bge-small-en-v1.5, zero-padded 384 -> 1024 so cosine is preserved exactly).
+  That is a genuine semantic space, which is why S2 — whose conflicting claims
+  share no subject key — now passes rather than being reported untested.
+- Tier-2 adjudication still fails closed. See `docs/CONSISTENCY_MODEL.md` §7 for
+  exactly what that does and does not prove.
 - The node-kill chaos test — CockroachDB Cloud Basic gives no node to kill, and
   the local Docker cluster needs the Docker daemon running.
   `infra/chaos/start_cluster.sh` + `tests/chaos/`.
 - `ccloud` provisioning — the CLI was not installed; the cluster used here was
   created through the console. The script is written and idempotent.
 
-Consequently `S2_budget_ceiling` — whose conflicting claims share no subject key
-and therefore need real semantic embeddings — is reported as **NOT TESTED**
-rather than passing or failing. That is also the cleanest evidence that the
-vector index is load-bearing: remove real embeddings and exactly one scenario
-stops working, and it is the one tier 1 cannot reach.
+`S2_budget_ceiling` is the cleanest evidence that the vector index is
+load-bearing. Its two claims share no subject key, so tier 1 structurally
+cannot reach them and only ANN over a real embedding space surfaces the pair —
+measured at 0.8633 cosine against 0.7461 for an unrelated pair. Under the
+synthetic stand-in it was reported NOT TESTED; with a real model it passes.
+Exactly one scenario depends on that capability, and it is the one tier 1
+cannot reach.
 
 ---
 

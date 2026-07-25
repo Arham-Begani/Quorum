@@ -65,6 +65,8 @@ class Adjudicator:
         timeout_s: float = DEFAULT_TIMEOUT_S,
         force_offline: bool = False,
     ):
+        from ..db.pool import load_env      # see Embedder.__init__
+        load_env()
         self.model_id = model_id or os.environ.get("BEDROCK_CHAT_MODEL_ID", "")
         self.region = region or os.environ.get("AWS_REGION", "us-east-1")
         self.per_claim_budget = int(
@@ -73,6 +75,7 @@ class Adjudicator:
         self.timeout_s = timeout_s
         self.calls_this_run = 0
         self._client = None
+        self.selection_error: str | None = None
         self.provider = OFFLINE_STUB if force_offline else self._select_provider()
 
     def _select_provider(self) -> str:
@@ -92,8 +95,17 @@ class Adjudicator:
                 "bedrock-runtime",
                 config=Config(read_timeout=self.timeout_s, retries={"max_attempts": 2}),
             )
+            # Prove the model actually answers. Credentials on an account with
+            # no Bedrock entitlement authenticate fine and refuse every call --
+            # which would fail closed on EVERY pair while the run report
+            # claimed a real adjudicator was in use. That is precisely the
+            # mislabelling the provider field exists to prevent.
+            self._invoke('Reply with JSON only: {"verdict":"unrelated",'
+                         '"confidence":1.0,"rationale":"probe"}')
             return BEDROCK
-        except Exception:
+        except Exception as exc:
+            self._client = None
+            self.selection_error = f"{type(exc).__name__}: {str(exc)[:140]}"
             return OFFLINE_STUB
 
     @property
@@ -180,6 +192,7 @@ class Adjudicator:
     def info(self) -> dict:
         return {
             "provider": self.provider,
+            "unavailable": self.selection_error,
             "model_id": self.model_id or None,
             "prompt_version": prompts.PROMPT_VERSION,
             "per_claim_budget": self.per_claim_budget,

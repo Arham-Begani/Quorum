@@ -148,3 +148,32 @@ vector index is load-bearing: remove real embeddings and exactly one scenario
 stops working, and it is the one tier 1 cannot reach.
 
 ---
+
+## Judging criteria
+
+**Agentic memory design.** Memory is append-only atoms with attribution,
+confidence, evidence count and validity intervals. Contradiction is a
+first-class state (`contested`), not an error. The system can say "I do not
+know which of these is true, so I will not act" — and the action gate makes that
+refusal consequential rather than advisory.
+
+**Technological implementation.** The two-phase write path satisfies two
+invariants that pull against each other: no network calls inside a transaction,
+and the neighbourhood read in the same transaction as the write. The probe /
+authoritative-read reconciliation is what makes that sound, with a bounded
+re-prepare that fails closed.
+
+**Real-world impact.** Every multi-agent framework shipping today writes shared
+memory with no contradiction control. The failures are not hypothetical: wrong
+booking, policy breach, contacting someone after they opted out.
+
+**Product readiness.** Four least-privilege roles, a read-only audited auditor
+path, column-scoped `UPDATE` grants enforcing append-only at the database level,
+bounded and surfaced retries, cost and latency measured per run, negative tests
+for cross-workspace leakage, and a CI lint that fails the build if the three
+modes ever stop being the same experiment.
+
+**Creativity.** The `txn_only` mode. Most entries will show "vector store bad,
+CockroachDB good". This one includes a column that is CockroachDB used perfectly
+and *still wrong*, because that is the only way to show the gap being filled is
+real.

@@ -166,3 +166,19 @@ def test_every_pair_produces_a_conflict_record_including_benign_ones():
     plan = engine.resolve(c, [(atom(), Verdict.AGREEMENT, "tier1_structural", 0.99, None)])
     records = plan.conflict_records(uuid.uuid4())
     assert len(records) == 1 and records[0].verdict == Verdict.AGREEMENT
+
+
+# --- the canonical scenarios land on the documented rules ------------------
+
+@pytest.mark.parametrize("incoming_role,existing_role,inc_conf,exi_conf,rule,resolution", [
+    ("booking_agent", "lodging_agent", 0.95, 0.7, "R1", Resolution.SUPERSEDE),   # S1
+    ("research_agent", "budget_agent", 0.4, 0.9, "R1", Resolution.REJECT),       # S2
+    ("ground_agent", "ground_agent", 0.7, 0.7, "R4", Resolution.CONTEST),        # S3
+    ("research_agent", "research_agent", 0.8, 0.6, "R3", Resolution.SUPERSEDE),  # S4
+    ("ground_agent", "lodging_agent", 0.7, 0.7, "R4", Resolution.CONTEST),       # S5
+])
+def test_canonical_scenarios_hit_expected_rule(incoming_role, existing_role,
+                                               inc_conf, exi_conf, rule, resolution):
+    d = resolve(claim(role=incoming_role, conf=inc_conf),
+                atom(role=existing_role, conf=exi_conf))
+    assert (d.policy_rule, d.resolution) == (rule, resolution)

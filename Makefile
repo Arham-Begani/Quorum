@@ -6,6 +6,7 @@ help:
 	@echo ""
 	@echo "  make install         install python deps"
 	@echo "  make migrate         apply schema, indexes, GC TTL, agent registry"
+	@echo "  make console         live console -- type your own contradictions"
 	@echo "  make demo            all 5 scenarios x 3 modes"
 	@echo "  make demo-s5         the flagship concurrent race"
 	@echo "  make spike           the original M2 proof spike (200 races x 3 modes)"
@@ -22,6 +23,9 @@ install:
 
 migrate:
 	python -m quorum.db.migrate
+
+console:
+	python -m quorum.demo.console
 
 demo:
 	python -m quorum.harness.report --all --delay-ms 40

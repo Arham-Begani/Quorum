@@ -1,0 +1,61 @@
+name: Deploy dashboard to GitHub Pages
+
+# The hackathon rules require a functional demo URL that works without
+# credentials. The dashboard is a static export that ships with a baked
+# snapshot of a completed three-mode comparison, so it renders the whole story
+# on first load with no database, no API and no secrets.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dashboard/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a half-finished deploy; queue instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install
+        run: npm ci --prefix dashboard
+      - name: Build static export
+        # basePath is required because Pages serves the site from /<repo>/
+        # rather than from the domain root.
+        env:
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+        run: npm run build --prefix dashboard
+      - name: Disable Jekyll
+        # Without this, Pages ignores Next.js's _next/ directory and the page
+        # loads with no CSS or JS.
+        run: touch dashboard/out/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

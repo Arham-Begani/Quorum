@@ -74,3 +74,16 @@ class ScenarioPlan:
     def subject_keys(self) -> tuple[str, ...]:
         return tuple({t.subject_key for t in self.turns
                       if isinstance(t, RememberTurn)})
+
+
+def check(expected: str, actual: int) -> bool:
+    expected = expected.strip()
+    if expected.startswith(">="):
+        return actual >= int(expected[2:])
+    if expected.startswith(">"):
+        return actual > int(expected[1:])
+    if expected.startswith("<="):
+        return actual <= int(expected[2:])
+    if expected.startswith("<"):
+        return actual < int(expected[1:])
+    return actual == int(expected)

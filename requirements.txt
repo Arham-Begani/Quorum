@@ -1,0 +1,22 @@
+# Core memory layer. Raw psycopg on purpose: transaction boundaries are the
+# entire thesis, and a framework that manages sessions for you hides exactly the
+# thing that has to be demonstrated.
+psycopg[binary,pool]>=3.1
+python-dotenv>=1.0
+certifi>=2024.2          # CA bundle; libpq has no usable default trust store on Windows
+
+# AWS / Bedrock. Optional at runtime: without credentials the system falls back
+# to deterministic offline providers and records that fact in every run report.
+boto3>=1.34
+
+# API surface (read-only)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2
+
+# Observability
+structlog>=24.1
+
+# Tests
+pytest>=8.0
+pytest-repeat>=0.9

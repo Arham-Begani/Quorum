@@ -120,3 +120,49 @@ def compare(scenario: str):
     return {"scenario": plan.id, "title": plan.title,
             "description": plan.description,
             "wrong_action_note": plan.wrong_action_note, "modes": out}
+
+
+@app.get("/conflicts")
+def conflicts(run_id: uuid.UUID | None = None,
+              workspace_id: uuid.UUID | None = None, limit: int = 200):
+    sql = ("SELECT id, workspace_id, run_id, incoming_atom_id, existing_atom_id, "
+           "subject_key, detector, similarity, verdict, resolution, policy_rule, "
+           "rationale, adjudicator_ms, detected_at FROM memory_conflict WHERE 1=1")
+    params: list = []
+    if run_id:
+        sql += " AND run_id = %s"
+        params.append(run_id)
+    if workspace_id:
+        sql += " AND workspace_id = %s"
+        params.append(workspace_id)
+    sql += " ORDER BY detected_at DESC LIMIT %s"
+    params.append(limit)
+    return _json_safe(rows(sql, tuple(params)))
+
+
+@app.get("/atoms")
+def atoms(workspace_id: uuid.UUID, live_only: bool = False, limit: int = 500):
+    sql = ("SELECT id, workspace_id, subject_key, predicate, object_text, object_json, "
+           "writer_agent_id, writer_role, confidence, evidence_count, valid_from, "
+           "valid_to, superseded_by, status, visibility FROM memory_atom "
+           "WHERE workspace_id = %s")
+    if live_only:
+        sql += " AND valid_to IS NULL"
+    sql += " ORDER BY valid_from LIMIT %s"
+    return _json_safe(rows(sql, (workspace_id, limit)))
+
+
+@app.get("/actions")
+def actions(run_id: uuid.UUID | None = None, workspace_id: uuid.UUID | None = None):
+    sql = ("SELECT id, workspace_id, run_id, agent_id, action_type, payload, "
+           "required_keys, gate_result, justifying_atom_ids, executed, outcome, "
+           "created_at FROM action_log WHERE 1=1")
+    params: list = []
+    if run_id:
+        sql += " AND run_id = %s"
+        params.append(run_id)
+    if workspace_id:
+        sql += " AND workspace_id = %s"
+        params.append(workspace_id)
+    sql += " ORDER BY created_at"
+    return _json_safe(rows(sql, tuple(params)))

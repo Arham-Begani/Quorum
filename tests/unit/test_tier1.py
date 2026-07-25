@@ -141,3 +141,13 @@ def test_identical_unstructured_json_agrees():
 
 def test_differing_multi_field_json_is_inconclusive():
     assert tier1.classify(claim({"a": 1, "b": 2}), atom({"a": 9, "b": 8})) is None
+
+
+def test_tier1_is_pure_and_repeatable():
+    c, a = claim("2026-09-14"), atom("2026-09-15")
+    assert tier1.classify(c, a) == tier1.classify(c, a) == Verdict.CONTRADICTION
+
+
+def test_is_structural_pair():
+    assert tier1.is_structural_pair(claim("x"), atom("y"))
+    assert not tier1.is_structural_pair(claim("x", key="trip:1:other"), atom("y"))

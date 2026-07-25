@@ -17,3 +17,45 @@ jobs:
         run: python tools/lint_modes.py
       - name: Unit tests
         run: python -m pytest tests/unit -q
+
+  # The thesis, expressed as code. Runs against a real CockroachDB.
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      crdb:
+        image: cockroachdb/cockroach:latest-v25.2
+        ports: ["26257:26257"]
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/health?ready=1"
+          --health-interval 10s --health-timeout 5s --health-retries 12
+    env:
+      CRDB_URL: postgresql://root@localhost:26257/defaultdb?sslmode=disable
+      QUORUM_ISOLATION_ITERATIONS: "100"
+      QUORUM_ISOLATION_DELAY_MS: "20"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements.txt
+      - name: Migrate
+        run: python -m quorum.db.migrate
+      - name: Flagship isolation test — 100 consecutive races
+        run: python -m pytest tests/integration/test_txn_isolation.py -q -s
+      - name: Scenario divergence (S1-S5 x 3 modes)
+        run: python -m pytest tests/scenarios -q
+      - name: Three-mode comparison
+        run: python -m quorum.harness.report --all --delay-ms 20
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: run-reports
+          path: runs/
+
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: npm ci --prefix dashboard || npm install --prefix dashboard
+      - run: npm run build --prefix dashboard

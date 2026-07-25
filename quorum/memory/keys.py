@@ -57,3 +57,29 @@ _register("hotel.checkout_date",
 _register("hotel.name", "hotel", "property", "hotel_name", "lodging.name")
 _register("hotel.nightly_rate", "nightly rate", "room rate", "rate per night",
           "hotel.rate", "hotel_price")
+
+# --- flights ---------------------------------------------------------------
+_register("flight.arrival_date", "arrival date", "arrives", "flight arrival",
+          "flight.arrives_on")
+_register("flight.departure_date", "departure date", "departs", "flight departure",
+          "flight.departs_on")
+_register("flight.number", "flight no", "flight number", "flight_no")
+
+# --- ground transport ------------------------------------------------------
+_register("ground.transfer_slot", "transfer slot", "airport transfer",
+          "transfer", "ground transfer", "pickup slot", "ground.transfer")
+_register("ground.pickup_time", "pickup time", "pick up time", "collection time")
+
+# --- budget and policy -----------------------------------------------------
+_register("budget.ceiling_usd", "budget ceiling", "budget cap", "max budget",
+          "spend limit", "budget.cap", "budget_limit", "ceiling")
+_register("budget.currency", "currency")
+
+# --- traveller preferences -------------------------------------------------
+_register("traveller.contact_preference", "contact preference",
+          "communication preference", "contact pref", "traveler.contact_preference",
+          "notification preference", "email preference")
+_register("traveller.price_flexibility", "price flexibility",
+          "traveler.price_flexibility", "flexible on price", "price sensitivity")
+_register("traveller.loyalty_program", "loyalty program", "frequent flyer",
+          "traveler.loyalty_program")

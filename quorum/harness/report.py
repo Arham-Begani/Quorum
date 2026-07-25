@@ -126,3 +126,92 @@ def print_comparison(result: dict) -> None:
         print(f"\n  quorum detections: {conflicts['detected']} "
               f"(tier1={conflicts['tier1']}, tier2={conflicts['tier2']}) "
               f"resolutions={conflicts['resolutions']} rules={conflicts['policy_rules']}")
+
+
+def maybe_upload_s3(path: Path) -> str | None:
+    bucket = os.environ.get("S3_BUCKET")
+    if not bucket:
+        return None
+    try:
+        import boto3
+        session = boto3.session.Session()
+        if session.get_credentials() is None:
+            return None
+        key = f"runs/{path.name}"
+        session.client("s3").upload_file(str(path), bucket, key)
+        return f"s3://{bucket}/{key}"
+    except Exception as exc:
+        print(f"  S3 upload skipped: {type(exc).__name__}: {exc}")
+        return None
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--scenario", default=None)
+    ap.add_argument("--all", action="store_true")
+    ap.add_argument("--modes", default=",".join(MODES))
+    ap.add_argument("--seed", type=int, default=driver.RUN_SEED)
+    ap.add_argument("--delay-ms", type=int, default=0,
+                    help="widen the read->write race window; disclosed in the report")
+    ap.add_argument("--out", default=None)
+    args = ap.parse_args()
+
+    if not args.scenario and not args.all:
+        ap.error("pass --scenario <id> or --all")
+
+    scenarios = list(catalog.SCENARIO_IDS) if args.all else [args.scenario]
+    modes = tuple(m.strip() for m in args.modes.split(",") if m.strip())
+
+    pool = make_pool(crdb_url(), min_size=4, max_size=10,
+                     dbname=quorum_dbname(), app_name="quorum-harness")
+    embedder = Embedder()
+    adjudicator = Adjudicator()
+
+    print("=" * 82)
+    print("QUORUM — three-mode comparison")
+    print("=" * 82)
+    print(f"  embedder     : {embedder.info()['provider']}")
+    print(f"  tier-2       : {adjudicator.info()['provider']}")
+    print(f"  seed         : {args.seed}")
+    print(f"  race delay   : {args.delay_ms} ms (disclosed)")
+    if embedder.is_offline or adjudicator.is_offline:
+        print("\n  WARNING: running without Bedrock. The embedder and/or tier-2")
+        print("           adjudicator are offline stand-ins; see docs/CONSISTENCY_MODEL.md")
+        print("           for exactly what that does and does not prove.")
+
+    results = []
+    try:
+        for sid in scenarios:
+            result = compare(sid, modes=modes, seed=args.seed,
+                             delay_ms=args.delay_ms, pool=pool,
+                             embedder=embedder, adjudicator=adjudicator)
+            result["verdicts"] = verdicts(result)
+            print_comparison(result)
+            results.append(result)
+    finally:
+        pool.close()
+
+    RUNS_DIR.mkdir(exist_ok=True)
+    out = Path(args.out) if args.out else RUNS_DIR / (
+        f"{scenarios[0]}.json" if len(scenarios) == 1 else "all_scenarios.json")
+    payload = {"results": results,
+               "providers": {"embedder": embedder.info(),
+                             "tier2": adjudicator.info()}}
+    out.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    print(f"\nwrote {out}")
+    uploaded = maybe_upload_s3(out)
+    if uploaded:
+        print(f"uploaded {uploaded}")
+
+    checked = [v for r in results for v in r["verdicts"].values() if not v.get("blocked")]
+    blocked = [v for r in results for v in r["verdicts"].values() if v.get("blocked")]
+    failed = [v for v in checked if not v["pass"]]
+    print(f"\nOVERALL: {len(checked) - len(failed)}/{len(checked)} checks passed", end="")
+    if blocked:
+        print(f", {len(blocked)} not testable without Bedrock", end="")
+    print(f"\n         {'PASS' if not failed else 'FAIL'}")
+    return 0 if not failed else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

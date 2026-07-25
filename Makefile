@@ -32,3 +32,38 @@ demo-s5:
 spike:
 	python spikes/bootstrap.py
 	python spikes/prove_race.py --iterations 200 --delay-ms 50
+
+test: lint test-unit test-scenarios
+
+test-unit:
+	python -m pytest tests/unit -q
+
+test-scenarios:
+	python -m pytest tests/scenarios -q
+
+# The flagship. BUILD.md asks for 100 consecutive runs.
+test-isolation:
+	QUORUM_ISOLATION_ITERATIONS=100 python -m pytest \
+	  tests/integration/test_txn_isolation.py -q -s
+
+lint:
+	python tools/lint_modes.py
+
+api:
+	python -m uvicorn quorum.api.server:app --reload --port 8000
+
+dashboard:
+	cd dashboard && npm run dev
+
+export:
+	python -m quorum.harness.export_demo --rerun
+
+chaos-up:
+	bash infra/chaos/start_cluster.sh
+
+chaos-down:
+	bash infra/chaos/stop_cluster.sh
+
+clean:
+	rm -rf runs/ .pytest_cache .cache dashboard/.next dashboard/out
+	find . -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true

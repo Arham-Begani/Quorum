@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Quorum swarm fan-out. One Lambda per agent turn, an S3 prefix for run reports,
+  and a CloudWatch namespace for retry and contradiction counts.
+
+  NOT DEPLOYED in this submission -- no AWS credentials were configured in the
+  build environment. Written, reviewed, and documented as unrun in
+  docs/SUBMISSION.md rather than implied to be live.
+
+Parameters:
+  BucketSuffix:
+    Type: String
+    Description: Suffix for the run-report bucket (must be globally unique)
+  CrdbSecretArn:
+    Type: String
+    Description: Secrets Manager ARN holding CRDB_URL. Never an env var in plaintext.
+  BedrockEmbedModelId:
+    Type: String
+    Default: amazon.titan-embed-text-v2:0
+  BedrockChatModelId:
+    Type: String
+    Default: ""
+    Description: Confirm what is actually enabled in your region before setting.
+
+Resources:
+  RunsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "quorum-runs-${BucketSuffix}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+
+  # Least privilege, and nothing else. Bedrock invoke on two named models,
+  # PutObject on ONE prefix, CloudWatch metrics in ONE namespace, and read of
+  # ONE secret. No wildcards on resources except where the API requires it.
+  SwarmRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: quorum-least-privilege
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource:
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/${BedrockEmbedModelId}"
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/*"
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "${RunsBucket.Arn}/runs/*"
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref CrdbSecretArn
+              - Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals: { "cloudwatch:namespace": "Quorum" }

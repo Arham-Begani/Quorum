@@ -186,3 +186,56 @@ def run(scenario: str | ScenarioPlan, mode: str, *, seed: int = RUN_SEED,
     if owns_pool:
         pool.close()
     return report
+
+
+def _group_turns(turns) -> list[list]:
+    out: list[list] = []
+    for turn in turns:
+        group = getattr(turn, "concurrent_group", None)
+        if (group is not None and out and
+                getattr(out[-1][0], "concurrent_group", None) == group):
+            out[-1].append(turn)
+        else:
+            out.append([turn])
+    return out
+
+
+def _execute(agents, turn) -> tuple[TurnRecord, int]:
+    agent = agents[turn.agent_id]
+    if isinstance(turn, RememberTurn):
+        res = agent.remember(turn.subject_key, turn.predicate, turn.object_text,
+                             turn.object_json, confidence=turn.confidence)
+        return (
+            TurnRecord("remember", turn.agent_id, turn.label or turn.subject_key,
+                       res.resolution,
+                       {"policy_rule": res.policy_rule, "retries": res.retries,
+                        "latency_ms": round(res.latency_ms, 1), "error": res.error,
+                        "conflicts": [c.to_dict() for c in res.conflicts]}),
+            0 if res.error or res.resolution == "reinforce" else 1,
+        )
+    if isinstance(turn, ActTurn):
+        res = agent.act(turn.action_type, turn.payload, turn.required_keys)
+        return (
+            TurnRecord("act", turn.agent_id, turn.label or turn.action_type,
+                       res.gate_result,
+                       {"executed": res.executed, "reason": res.reason,
+                        "justifying_atom_ids": [str(i) for i in res.justifying_atom_ids]}),
+            0,
+        )
+    raise TypeError(f"unknown turn type {type(turn)!r}")
+
+
+def _conflict_summary(rows: list[dict]) -> dict:
+    detected = sum(r["count"] for r in rows)
+    by = lambda field: {  # noqa: E731
+        k: sum(r["count"] for r in rows if r[field] == k)
+        for k in sorted({r[field] for r in rows if r[field] is not None})
+    }
+    return {
+        "detected": detected,
+        "tier1": sum(r["count"] for r in rows if r["detector"] == "tier1_structural"),
+        "tier2": sum(r["count"] for r in rows if r["detector"] == "tier2_semantic"),
+        "verdicts": by("verdict"),
+        "resolutions": by("resolution"),
+        "policy_rules": by("policy_rule"),
+    }

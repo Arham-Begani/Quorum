@@ -6,6 +6,7 @@ help:
 	@echo ""
 	@echo "  make install         install python deps"
 	@echo "  make migrate         apply schema, indexes, GC TTL, agent registry"
+	@echo "  make check-bedrock   is Bedrock actually usable? (probes, not console)"
 	@echo "  make console         live console -- type your own contradictions"
 	@echo "  make demo            all 5 scenarios x 3 modes"
 	@echo "  make demo-s5         the flagship concurrent race"
@@ -23,6 +24,9 @@ install:
 
 migrate:
 	python -m quorum.db.migrate
+
+check-bedrock:
+	python tools/check_bedrock.py
 
 console:
 	python -m quorum.demo.console

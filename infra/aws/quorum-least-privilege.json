@@ -1,0 +1,46 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "WriteRunReportsToOnePrefix",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::REPLACE-WITH-YOUR-BUCKET/runs/*"
+    },
+    {
+      "Sid": "DiscoverTheBucketOnly",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::REPLACE-WITH-YOUR-BUCKET",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": "runs/*"
+        }
+      }
+    },
+    {
+      "Sid": "PublishQuorumMetricsOnly",
+      "Effect": "Allow",
+      "Action": "cloudwatch:PutMetricData",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "cloudwatch:namespace": "Quorum"
+        }
+      }
+    },
+    {
+      "Sid": "ReadOwnMetricsForTheDashboard",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:ListMetrics",
+        "cloudwatch:GetMetricData",
+        "cloudwatch:GetMetricStatistics"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

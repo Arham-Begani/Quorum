@@ -107,13 +107,23 @@ concurrency genuine rather than simulated. `infra/lambda/`.
 
 ### S3
 
-Run reports, traces and scenario artifacts under one prefix.
-`quorum/harness/report.py::maybe_upload_s3`.
+Every run report is written to one bucket under a single `runs/` prefix.
+`quorum/harness/aws_export.py::upload_report`.
 
 ### CloudWatch
 
-`txn_retries`, `contradictions_detected` and `blocked_actions` exported as
-custom metrics. `infra/lambda/metrics.py`.
+`TxnRetries`, `ContradictoryActivePairs`, `WrongActions`, `BlockedActions` and
+`ContestedAtoms` published as custom metrics in the `Quorum` namespace,
+dimensioned by mode and scenario — so graphing `ContradictoryActivePairs` by
+mode renders the thesis as one chart: two lines above zero, one sitting on it.
+`quorum/harness/aws_export.py::export_metrics`.
+
+Both exports record their own outcome *inside* the run report under `aws`, so a
+report can never imply an export happened when it did not — the same rule the
+embedder and the tier-2 adjudicator already follow. IAM is least-privilege:
+write to one prefix of one bucket, and `PutMetricData` conditioned on
+`namespace = Quorum` so a leaked key cannot touch anything else.
+`infra/aws/quorum-least-privilege.json`.
 
 ---
 
@@ -133,9 +143,17 @@ scopes honestly.
   real, counted 40001 retries
 - read-only FastAPI surface and the static dashboard, rendered and checked
 
+- the node-kill chaos test, on a local 3-node cluster (CockroachDB v26.2.4):
+  `quorum-crdb-3` stopped mid-workload, **16 writes completed while the node was
+  down**, 32 counted 40001 retries, 0 give-ups, and
+  `contradictory_active_pairs` stayed 0. Availability *and* consistency, not one
+  bought with the other.
+- the S3 and CloudWatch export path, end to end against real AWS — request
+  signed, endpoint reached, error surfaced (see below).
+
 **Implemented but NOT run in this environment:**
 
-- Bedrock, Lambda, S3, CloudWatch. Credentials were configured and the control
+- Bedrock, Lambda. Credentials were configured and the control
   plane works — 122 models enumerate — but the account has no runtime
   entitlement, so **every** model refuses to invoke: 22 chat models across
   Anthropic, Mistral, Qwen, Google, Meta, Nova, DeepSeek and AI21, and 8
@@ -148,9 +166,14 @@ scopes honestly.
   share no subject key — now passes rather than being reported untested.
 - Tier-2 adjudication still fails closed. See `docs/CONSISTENCY_MODEL.md` §7 for
   exactly what that does and does not prove.
-- The node-kill chaos test — CockroachDB Cloud Basic gives no node to kill, and
-  the local Docker cluster needs the Docker daemon running.
-  `infra/chaos/start_cluster.sh` + `tests/chaos/`.
+- **S3 and CloudWatch reach AWS but are refused by IAM.** This is a narrower
+  claim than "not run": the code path executes on every run, the request is
+  signed and sent, and the response is a policy denial rather than a stub. The
+  run report records it verbatim —
+  `"cloudwatch": {"attempted": true, "ok": false, "detail": "AccessDenied …"}`.
+  The IAM user carrying these credentials holds Bedrock-scoped permissions only;
+  attaching `infra/aws/quorum-least-privilege.json` is the single remaining
+  step, and nothing else changes.
 - `ccloud` provisioning — the CLI was not installed; the cluster used here was
   created through the console. The script is written and idempotent.
 

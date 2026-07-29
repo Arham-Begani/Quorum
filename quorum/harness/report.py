@@ -24,7 +24,7 @@ from ..domain.scenarios import catalog
 from ..domain.scenarios.base import check
 from ..embed.bedrock import Embedder
 from ..memory.factory import MODES
-from . import driver
+from . import aws_export, driver
 
 RUNS_DIR = Path("runs")
 
@@ -128,21 +128,28 @@ def print_comparison(result: dict) -> None:
               f"resolutions={conflicts['resolutions']} rules={conflicts['policy_rules']}")
 
 
-def maybe_upload_s3(path: Path) -> str | None:
-    bucket = os.environ.get("S3_BUCKET")
-    if not bucket:
-        return None
-    try:
-        import boto3
-        session = boto3.session.Session()
-        if session.get_credentials() is None:
-            return None
-        key = f"runs/{path.name}"
-        session.client("s3").upload_file(str(path), bucket, key)
-        return f"s3://{bucket}/{key}"
-    except Exception as exc:
-        print(f"  S3 upload skipped: {type(exc).__name__}: {exc}")
-        return None
+def _aws_provenance(payload: dict, out: Path, results: list) -> None:
+    """Ship the report to S3 and the counters to CloudWatch, and record the
+    outcome of both INSIDE the report.
+
+    Recording it matters: a report that is silent about its exports lets a
+    reader assume they happened. The status lands in the artifact so "we export
+    to S3 and CloudWatch" is either demonstrably true for this run or
+    demonstrably not, with the reason attached.
+    """
+    metrics = aws_export.export_metrics(results)
+    uploaded = aws_export.upload_report(out)   # after metrics, so the S3 copy
+                                               # can record the metric outcome
+    payload["aws"] = {"s3": uploaded, "cloudwatch": metrics}
+    out.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    if uploaded["ok"]:
+        # rewrite changed the file; re-upload so S3 holds the final bytes
+        uploaded = aws_export.upload_report(out)
+        payload["aws"]["s3"] = uploaded
+
+    print("\nAWS export")
+    aws_export.print_status("S3        ", uploaded)
+    aws_export.print_status("CloudWatch", metrics)
 
 
 def main() -> int:
@@ -199,9 +206,7 @@ def main() -> int:
                              "tier2": adjudicator.info()}}
     out.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
     print(f"\nwrote {out}")
-    uploaded = maybe_upload_s3(out)
-    if uploaded:
-        print(f"uploaded {uploaded}")
+    _aws_provenance(payload, out, results)
 
     checked = [v for r in results for v in r["verdicts"].values() if not v.get("blocked")]
     blocked = [v for r in results for v in r["verdicts"].values() if v.get("blocked")]

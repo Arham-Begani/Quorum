@@ -24,6 +24,9 @@ comparison — no network — which is what lets I1 and I2 both hold at once. If
 brand-new neighbour appears that tier 1 cannot decide, we do not call an LLM
 with a transaction open: we roll back and re-prepare, bounded, then fail closed
 to CONTEST.
+
+SAFL modification, 2026-10-30: retain failed adjudication provenance and make
+uncertainty override ranking, including the exhausted re-prepare path.
 """
 
 from __future__ import annotations
@@ -67,6 +70,7 @@ class PreparedDecision:
     verdicts: dict = field(default_factory=dict)   # atom_id -> (verdict, detector, sim, ms)
     probe_ids: frozenset = frozenset()
     adjudications: int = 0
+    failed_closed: dict[uuid.UUID, str] = field(default_factory=dict)
 
 
 class RepreparNeeded(Exception):
@@ -159,6 +163,7 @@ class QuorumMemory(MemoryClient):
                 probe = self._neighbourhood(cur, claim, vec)
 
         verdicts: dict = {}
+        failed_closed: dict[uuid.UUID, str] = {}
         adjudications = 0
         for atom in probe:
             sim = similarity_from_distance(atom.distance)
@@ -172,9 +177,12 @@ class QuorumMemory(MemoryClient):
                 res = self.adjudicator.adjudicate(claim, atom, calls_used=adjudications)
                 adjudications += 1
                 verdicts[atom.id] = (res.verdict, Detector.TIER2, sim, int(res.latency_ms))
+                if res.failed_closed:
+                    failed_closed[atom.id] = res.rationale
             # else: not similar enough to be a candidate; no verdict recorded.
 
-        return PreparedDecision(vec, verdicts, frozenset(a.id for a in probe), adjudications)
+        return PreparedDecision(vec, verdicts, frozenset(a.id for a in probe),
+                                adjudications, failed_closed)
 
     # -- Phase B --------------------------------------------------------
     def _commit(self, cur, claim: Claim, prepared: PreparedDecision,
@@ -192,18 +200,24 @@ class QuorumMemory(MemoryClient):
 
         pairs: list[tuple[Atom, str, str, float | None, int | None]] = []
         unjudgeable: list[uuid.UUID] = []
+        forced = dict(prepared.failed_closed)
+        forced.update({ident: "fail-closed: unresolved authoritative neighbour; forced contest"
+                       for ident in (force_contest or ())})
 
         for atom in authoritative:
             sim = similarity_from_distance(atom.distance)
+            # Uncertainty is not a classified contradiction that R1-R3 may
+            # resolve. Explicit forcing also overrides a cached benign verdict.
+            if atom.id in forced:
+                _, detector, prev_sim, adj_ms = prepared.verdicts.get(
+                    atom.id, (None, Detector.TIER1, sim, None))
+                pairs.append((atom, Verdict.CONTRADICTION, detector,
+                              prev_sim if prev_sim is not None else sim, adj_ms))
+                continue
             if atom.id in prepared.verdicts:
                 verdict, detector, prev_sim, adj_ms = prepared.verdicts[atom.id]
                 pairs.append((atom, verdict, detector, prev_sim if prev_sim is not None else sim,
                               adj_ms))
-                continue
-
-            # A concurrent writer landed between the probe and this read.
-            if force_contest and atom.id in force_contest:
-                pairs.append((atom, Verdict.CONTRADICTION, Detector.TIER1, sim, None))
                 continue
 
             verdict = tier1.classify(claim, atom)      # deterministic, no network
@@ -220,7 +234,7 @@ class QuorumMemory(MemoryClient):
         # Only genuinely relevant pairs reach the policy engine. An `unrelated`
         # verdict is still logged to memory_conflict -- the ratio of benign to
         # contradictory detections is itself a credibility signal.
-        plan = engine.resolve(claim, pairs, registry)
+        plan = engine.resolve(claim, pairs, registry, force_contest=forced)
         self._apply(cur, claim, plan, atom_id, prepared.vec_literal)
         self._write_conflicts(cur, claim, plan.conflict_records(atom_id))
         return plan

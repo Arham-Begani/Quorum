@@ -1,0 +1,189 @@
+QUORUM: PRESERVING UNCERTAINTY AND PRIVATE-MEMORY BOUNDARIES
+Local engineering evaluation for SAFL, 30 October 2026
+
+STATUS AND ATTRIBUTION
+This is a new, narrow correctness contribution on top of existing Quorum code.
+The Apache-2.0 baseline is Arham-Begani/Quorum commit
+96ba8f8b5ac7b1388ef8d59d5377e844f9f9ac56 (29 July 2026). Its existing memory
+architecture, policy engine, scenario driver, database design, dashboard and
+tests are prior work. They are not presented as developed during this event.
+
+The 30 October additions are the two repairs below, 83 focused regression
+cases, synthetic fixtures, an offline demo, a local Git replay comparator and
+these evaluation records. Codex prepared these changes and tests at the user's
+direction. No personal reflection, field study, user testing or human review
+completion is claimed. Existing copyright and LICENSE are retained. Modified
+production files carry dated change notices.
+
+The evaluation was captured from local, uncommitted changes on the baseline.
+Exact source and harness SHA-256 hashes appear in safl-evidence/comparison.json;
+the Git commit containing this document identifies the reviewed candidate.
+No push, public upload or submission occurred during this evaluation. No README
+file was modified. Stored test records normalize local checkout paths, machine
+identifiers and trailing display whitespace; test counts/results are preserved.
+CLAUDE.md was read in full; its transaction, append-only, visibility and shared
+workload invariants guided the repair. Its older event instructions are not
+represented as SAFL's rules. No additional human-review publication mandate
+was found in repository instructions; publication is outside this work's scope.
+
+PROBLEM 1: FAILURE PROVENANCE WAS LOST BEFORE THE FINAL DECISION
+The existing tier-2 adjudicator returns failed_closed=True when unavailable,
+over budget, timed out or unable to parse an answer. The old prepare phase
+retained only the conservative 'contradiction' verdict. The policy engine could
+then rank the writers and choose SUPERSEDE or REJECT, even though no semantic
+classification had succeeded. The explicit force_contest path had the same
+problem. A higher-authority incoming assertion could become active and justify
+a dependent action following an unavailable adjudicator.
+
+Repair: PreparedDecision now carries failed-closed atom IDs with their reasons.
+The authoritative commit phase gives these IDs, and explicit forced IDs,
+precedence over cached verdicts and structural classification. The policy engine
+maps them directly to CONTEST before ordinary ranking. Existing aggregate
+CONTEST handling prevents supersession/reinforcement and marks the incoming
+and affected existing atoms contested. Audit records retain the failure reason.
+Only neighbours still present in the authoritative read participate. No network
+operation was added inside a transaction, no schema was changed, and the
+existing transaction retry wrapper remains the sole production commit path.
+
+PROBLEM 2: PRIVATE RECALL DID NOT IMPLY PRIVATE ACTION INPUTS
+Recall hid another agent's private atom, but the action resolver selected it
+again without its ownership restriction. It could justify an action or appear
+in a contested-action explanation; a selected value could enter the derived
+action-log payload. A hidden contested atom could also block an otherwise valid
+shared-memory action and expose its content through the reason.
+
+Repair: the shared action resolver filters another agent's private atoms before
+gate evaluation, selected values, explanations or derived audit payloads are
+constructed. This applies uniformly to all three modes. An action depending
+only on hidden private memory receives the existing blocked_missing result.
+The owner can still use their private memory; shared memory still works; the
+owner's contested private memory still blocks their action. Final review also
+rejects a missing, blank or non-string action identity before any query;
+malformed private owners never establish ownership, and unrecognized
+visibility values are denied in action resolution and recall. This hardens
+direct SDK inputs, whose dataclass annotations do not enforce runtime types.
+No authentication or role-permission redesign was added.
+
+OBSERVED BEFORE/AFTER RESULTS
+Identical new regression suite on pinned baseline: 14 passed, 69 failed,
+0 skipped, 0 errors (83 parametrized cases total).
+Identical suite on repaired working tree: 83 passed, 0 failed, 0 skipped,
+0 errors. tools/safl_compare.py reconstructs the baseline using local Git
+archive, copies the SAME test harness into it, executes both versions and
+records their counts, source hashes and demo outputs. No network fetch occurs.
+
+Full existing-plus-new offline suite: 156 passed, 40 skipped, 0 failed.
+The original suite alone had 73 passes and 40 skips. All four existing
+tests/unit/test_security.py tests require a real database and remain skipped,
+along with integration, scenario and chaos tests. Compilation, I8 mode lint
+and git diff --check pass. Timing in the raw test output is execution evidence,
+not a performance benchmark.
+
+Representative demonstration:
+  Unavailable adjudicator with higher-authority incoming writer:
+    baseline: SUPERSEDE/R1; dependent action ALLOWED
+    repaired: CONTEST/fail_closed; both atoms contested; action BLOCKED_CONTESTED
+  Explicit forced contest:
+    baseline: SUPERSEDE/R1
+    repaired: CONTEST/fail_closed
+  Another agent's private atom:
+    baseline: recall returns zero; action ALLOWED; fixture value in action log
+    repaired: recall returns zero; action BLOCKED_MISSING; value absent
+  Owner-private and shared-memory controls:
+    baseline and repaired: ALLOWED, with the legitimate resolved value logged
+
+The 69 baseline failures are cases in a deliberately authored regression
+matrix around two diagnosed defects and malformed-input hardening, not 69
+independent vulnerabilities and not an estimate of general security accuracy.
+Cases cover five ranking
+conditions with offline/timeout/malformed/throttle/run-budget errors,
+per-claim budget exhaustion, cached benign verdicts under forced contest,
+actual re-prepare exhaustion, mixed neighbours, successful adjudication
+controls, private active/contested values across all modes and owner/shared
+controls. Additional review cases cover absent/malformed IDs, unrecognized
+visibility, valid unregistered owner IDs under the trusted SDK contract,
+failure-reason retention and stale neighbours absent from the authoritative
+read. Provider errors are simulated; no provider was actually throttled.
+
+FINAL REVIEW OF TEST DESIGN
+The fixtures never choose a policy result or action gate. Those decisions are
+computed by production remember/_prepare/_commit, engine.resolve and act code.
+The recording store only supplies rows and records/applies known SQL statement
+parameters. Assertions check actual returned resolutions/gates, reasons,
+justifying IDs, generated payloads and absence of supersede/reinforce writes.
+Four direct policy tests use no store fixture and make resolve_pair raise if
+forced decisions attempt normal ranking. Tests also prove that invalid action
+IDs produce no queries/logs, and that two missing IDs do not establish private
+recall ownership. This is strong code-path regression evidence, not SQL or
+database verification. A valid matching unregistered ID is deliberately still
+accepted: the repair is not represented as identity authentication.
+
+WHAT RAN AND WHAT WAS MOCKED
+Real executed code: Adjudicator parsing/error/budget behavior; prepare and
+commit callbacks; policy resolution; atom/write parameter generation;
+conflict-record generation; recall visibility; action gate and action audit
+payload construction; existing pure unit tests.
+
+Synthetic components: scripted nearest-neighbour rows, a recording store that
+models only known statement shapes, an in-process transaction adapter, one
+constant embedding vector and provider responses/errors. The recording store
+is not a SQL engine. It does not prove CockroachDB query validity, persistence,
+serializability, retry behavior under real contention, vector recall or crash
+recovery. No real booking or external side effect occurred; executed=True in
+controls refers only to the repository's simulated action result/log.
+
+No live/paid LLM or third-party attack target was contacted. No real personal
+data was used. The runner removes cloud/database credential variables and
+blocks socket connections. Test strings and the private marker are synthetic.
+
+ACCESS-CONTROL LIMITS
+The SDK still trusts a well-formed caller-supplied agent ID, workspace and
+required_keys.
+An untrusted caller allowed to impersonate another ID or omit dependencies is
+outside this repair's guarantee. This does not add authentication, capability
+binding, role-visibility enforcement for actions, audit-endpoint permissions,
+tenant identity verification or sanitization of caller-supplied payload text.
+It prevents this code path from deriving values/reasons from another agent's
+private atom. Shared and role visibility otherwise retain existing behavior.
+Database query filtering and all database integration remain unverified here.
+
+REPRODUCTION
+Use Python 3.12 with the repository's Python dependencies installed and Git
+history containing the pinned baseline. No new install occurs in these scripts.
+This validation used Python 3.12.10, pytest 9.1.1, psycopg/psycopg-binary 3.3.6,
+psycopg-pool 3.3.3 and python-dotenv 1.2.4 on Windows. Original requirements
+use ranges rather than a full dependency lock; this is not a hermetic build.
+Git used for the replay is recorded in safl-evidence/environment.json.
+
+From the repository root:
+  python tools/safl_compare.py
+  python tools/run_safl_checks.py --all --junitxml docs/safl-evidence/repaired-full-suite.xml
+  python tools/safl_demo.py --output docs/safl-evidence/repaired-demo.json
+  python -m compileall -q quorum tests tools
+  python tools/lint_modes.py
+  git diff --check
+
+The local validation interpreter was ..\.venv-validation\Scripts\python.exe.
+The comparator expects the baseline regression process to fail (exit 1) and
+the repaired process to pass (exit 0); its own successful exit is 0. It neither
+modifies the current source nor checks out another branch. Its temporary
+baseline copy is confined to and cleaned from the evidence directory.
+
+DELIVERABLE MAP
+  quorum/memory/base.py                 private action-input ownership filter
+  quorum/memory/quorum.py               retained uncertainty and forced precedence
+  quorum/policy/engine.py               forced CONTEST before ranking
+  tests/safl_fixtures.py                clearly labelled recording fixtures
+  tests/unit/test_safl_safety.py         83 new cases
+  tools/run_safl_checks.py              credential-free, network-blocked test runner
+  tools/safl_demo.py                    safe synthetic behavior demonstration
+  tools/safl_compare.py                 pinned-baseline versus current replay
+  docs/safl-evidence/comparison.json     counts, provenance and content hashes
+  docs/safl-evidence/*-demo.json         measured representative outputs
+  docs/safl-evidence/*.xml, *.txt        machine-readable and text test records
+
+REMAINING WORK
+Review these local changes; run the database-backed security/isolation/scenario
+suite in an authorized local CockroachDB environment before making those
+claims. Decide publication and submission in the parent task. No new access
+denial or uncertain mutation occurred during this implementation phase.

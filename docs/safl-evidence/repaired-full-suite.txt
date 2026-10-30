@@ -1,0 +1,20 @@
+ssssssssssssssssssssssssssssssssssss.................................... [ 36%]
+........................................................................ [ 73%]
+.....................ssss...........................                     [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\chaos\test_node_kill.py:48: set QUORUM_CHAOS=1 and point CRDB_URL at a local multi-node cluster (see infra/chaos/start_cluster.sh)
+SKIPPED [1] tests\integration\test_txn_isolation.py:87: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\integration\test_txn_isolation.py:126: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\integration\test_txn_isolation.py:152: CRDB_URL not set; see .env.example
+SKIPPED [15] tests\scenarios\test_scenarios.py:46: CRDB_URL not set; see .env.example
+SKIPPED [5] tests\scenarios\test_scenarios.py:67: CRDB_URL not set; see .env.example
+SKIPPED [4] tests\scenarios\test_scenarios.py:77: CRDB_URL not set; see .env.example
+SKIPPED [5] tests\scenarios\test_scenarios.py:97: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\scenarios\test_scenarios.py:106: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\scenarios\test_scenarios.py:114: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\scenarios\test_scenarios.py:121: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\unit\test_security.py:28: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\unit\test_security.py:50: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\unit\test_security.py:64: CRDB_URL not set; see .env.example
+SKIPPED [1] tests\unit\test_security.py:81: CRDB_URL not set; see .env.example
+156 passed, 40 skipped in 0.69s

@@ -7,11 +7,16 @@ When several neighbours conflict, the most severe outcome wins: a single
 CONTEST anywhere makes the whole write contested, because letting a write
 partially commit against a contested fact is exactly the hole the action gate
 exists to close.
+
+SAFL modification, 2026-10-30: forced uncertainty decisions precede ordinary
+classification short-circuits and authority/evidence/confidence ranking.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Mapping
+from uuid import UUID
 
 from ..memory.schema import Atom, Claim, ConflictRecord, Resolution, Verdict
 from . import rules
@@ -84,6 +89,8 @@ def resolve(
     incoming: Claim,
     pairs: list[tuple[Atom, str, str, float | None, int | None]],
     registry: dict[str, int] | None = None,
+    *,
+    force_contest: Mapping[UUID, str] | None = None,
 ) -> ResolutionPlan:
     """pairs: [(existing_atom, verdict, detector, similarity, adjudicator_ms)]"""
     if not pairs:
@@ -92,7 +99,11 @@ def resolve(
 
     outcomes: list[PairOutcome] = []
     for existing, verdict, detector, similarity, adj_ms in pairs:
-        decision = resolve_pair(incoming, existing, verdict, registry)
+        if force_contest is not None and existing.id in force_contest:
+            decision = Decision(Resolution.CONTEST, "fail_closed",
+                                force_contest[existing.id] or "fail-closed: forced contest")
+        else:
+            decision = resolve_pair(incoming, existing, verdict, registry)
         outcomes.append(PairOutcome(existing, verdict, decision, detector,
                                     similarity, adj_ms))
 

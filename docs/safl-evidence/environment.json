@@ -1,0 +1,12 @@
+{
+  "python": "3.12.10",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "git": "git version 2.45.2.windows.1",
+  "packages": {
+    "pytest": "9.1.1",
+    "psycopg": "3.3.6",
+    "psycopg-binary": "3.3.6",
+    "psycopg-pool": "3.3.3",
+    "python-dotenv": "1.2.4"
+  }
+}

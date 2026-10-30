@@ -1,0 +1,35 @@
+{
+  "executed_at_utc": "2026-10-30T16:51:14.107474+00:00",
+  "baseline_commit": "96ba8f8b5ac7b1388ef8d59d5377e844f9f9ac56",
+  "current_head": "96ba8f8b5ac7b1388ef8d59d5377e844f9f9ac56",
+  "current_source": "working tree; hashes identify uncommitted changes",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "baseline": {
+    "exit_code": 1,
+    "tests": 83,
+    "failed": 69,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 14
+  },
+  "repaired": {
+    "exit_code": 0,
+    "tests": 83,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 83
+  },
+  "source_and_harness_sha256": {
+    "quorum/memory/base.py": "713a1864cca2155e1b0c6642ef0c0b593cd8b36b8216fecf2101e305f5bfa073",
+    "quorum/memory/quorum.py": "ef646158d58fde29e6baa3df1bcc32777d981ce8efaad9ae062d9e427050fedf",
+    "quorum/policy/engine.py": "e1e0c140a000e7d4573f346b73653fa60f8e9b0f704ae59ed4c00a647079b1f0",
+    "tests/safl_fixtures.py": "8a518808bab9822ed7d01e244ee00ac66f378ad9342f190244fc79c1b3cf8b8e",
+    "tests/unit/test_safl_safety.py": "7d0a869538bc8f4ada6443990b249de9e6ebb78b10a76ded827098be83aa76c4",
+    "tools/run_safl_checks.py": "7a8fbc21df0bd96bd8178c9fbbbee043e3bde9c76db049d9de2c5b9335ef4731",
+    "tools/safl_demo.py": "7ae560dce4159e6ba27cf514e6f429deb1948c3e3cda343c4bceb1319905e624",
+    "tools/safl_compare.py": "bd9924597db8e18493cf7ea5afb5d9179cdc32bc2b67bded0c1a3388791c880d"
+  },
+  "database_integration_verified": false,
+  "live_llm_calls": 0
+}

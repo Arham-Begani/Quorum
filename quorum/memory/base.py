@@ -7,6 +7,9 @@ same agent implementation, same scenarios. If the comparison ever needs an
 Shared machinery lives here so naive/txn_only/quorum cannot accidentally drift
 in the parts that are supposed to be identical (the SQL shapes, the recall
 path, the action gate). What differs is deliberately overridden.
+
+SAFL modification, 2026-10-30: private atoms owned by another agent cannot
+justify actions or enter the action's derived audit payload, in any mode.
 """
 
 from __future__ import annotations
@@ -173,6 +176,8 @@ class MemoryClient(ABC):
         return self._act_ungated(action)
 
     def _resolve_keys(self, cur, action: Action) -> dict[str, list[Atom]]:
+        if not isinstance(action.agent_id, str) or not action.agent_id.strip():
+            raise ValueError("action.agent_id must be a non-empty string")
         out: dict[str, list[Atom]] = {}
         for key in action.required_keys:
             cur.execute(
@@ -182,7 +187,13 @@ class MemoryClient(ABC):
                     ORDER BY valid_from DESC""",
                 (action.workspace_id, key),
             )
-            out[key] = [atom_from_row(r) for r in cur.fetchall()]
+            atoms = [atom_from_row(r) for r in cur.fetchall()]
+            # Match private recall ownership before gate decisions, reasons,
+            # chosen values or audit payloads are constructed. Identity is
+            # supplied by the trusted SDK caller; this is not authentication.
+            out[key] = [a for a in atoms
+                        if a.visibility in ("workspace", "role")
+                        or (a.visibility == "private" and self._owns_private(a, action.agent_id))]
         return out
 
     def _act_ungated(self, action: Action) -> GateResult:
@@ -291,13 +302,21 @@ class MemoryClient(ABC):
         return self._registry
 
     @staticmethod
+    def _owns_private(atom: Atom, agent_id: str) -> bool:
+        """Missing/malformed IDs never establish private ownership."""
+        return (isinstance(agent_id, str) and bool(agent_id.strip())
+                and isinstance(atom.writer_agent_id, str)
+                and atom.writer_agent_id == agent_id)
+
+    @staticmethod
     def _visible_to(atom: Atom, agent: AgentCtx) -> bool:
         """Reads are scoped. A sub-agent does not inherit full memory. [I7]"""
         if atom.visibility == "workspace":
             return True
         if atom.visibility == "role":
             return atom.writer_role == agent.role or "workspace" in agent.visibility_scopes
-        return atom.writer_agent_id == agent.agent_id      # private
+        return (atom.visibility == "private"
+                and MemoryClient._owns_private(atom, agent.agent_id))
 
     def _neighbourhood(self, cur, claim: Claim, vec_literal: str,
                        k: int | None = None) -> list[Atom]:

@@ -1,0 +1,47 @@
+{
+  "baseline_commit": "96ba8f8b5ac7b1388ef8d59d5377e844f9f9ac56",
+  "fixture": "recording store; scripted neighbours and transaction adapter",
+  "database_integration_verified": false,
+  "live_llm_calls": 0,
+  "cases": {
+    "offline_adjudication": {
+      "resolution": "supersede",
+      "policy_rule": "R1",
+      "statuses": [
+        "active",
+        "superseded"
+      ],
+      "dependent_action": "allowed",
+      "executed": true,
+      "audit_reasons": [
+        "Incoming writer booking_agent (tier 1) outranks research_agent (tier 4)."
+      ]
+    },
+    "explicit_force_contest": {
+      "resolution": "supersede",
+      "policy_rule": "R1",
+      "statuses": [
+        "active",
+        "superseded"
+      ]
+    },
+    "other_agent_private": {
+      "recall_visible_count": 0,
+      "action_gate": "allowed",
+      "executed": true,
+      "fixture_value_in_action_log": true
+    },
+    "owner_private_control": {
+      "recall_visible_count": 1,
+      "action_gate": "allowed",
+      "executed": true,
+      "fixture_value_in_action_log": true
+    },
+    "shared_control": {
+      "recall_visible_count": 1,
+      "action_gate": "allowed",
+      "executed": true,
+      "fixture_value_in_action_log": true
+    }
+  }
+}

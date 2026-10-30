@@ -1,0 +1,1649 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF....FFFFFFF......F.FFFFFFFFFFFFFFFF.FFFFF [ 86%]
+FFFF.FFFFF.                                                              [100%]
+================================== FAILURES ===================================
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[offline-booking_agent-research_agent-0.9-1] _
+
+incoming_role = 'booking_agent', existing_role = 'research_agent'
+inc_conf = 0.9, evidence = 1, failure = 'offline'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[offline-research_agent-booking_agent-0.1-1] _
+
+incoming_role = 'research_agent', existing_role = 'booking_agent'
+inc_conf = 0.1, evidence = 1, failure = 'offline'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[offline-ground_agent-ground_agent-0.9-5] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 5, failure = 'offline'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[offline-ground_agent-ground_agent-0.9-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 1, failure = 'offline'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[offline-ground_agent-ground_agent-0.7-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.7
+evidence = 1, failure = 'offline'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+        assert result.resolution == "contest"
+>       assert result.policy_rule == "fail_closed"
+E       AssertionError: assert 'R4' == 'fail_closed'
+E
+E         - fail_closed
+E         + R4
+
+tests\unit\test_safl_safety.py:51: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[timeout-booking_agent-research_agent-0.9-1] _
+
+incoming_role = 'booking_agent', existing_role = 'research_agent'
+inc_conf = 0.9, evidence = 1, failure = 'timeout'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[timeout-research_agent-booking_agent-0.1-1] _
+
+incoming_role = 'research_agent', existing_role = 'booking_agent'
+inc_conf = 0.1, evidence = 1, failure = 'timeout'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[timeout-ground_agent-ground_agent-0.9-5] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 5, failure = 'timeout'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[timeout-ground_agent-ground_agent-0.9-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 1, failure = 'timeout'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[timeout-ground_agent-ground_agent-0.7-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.7
+evidence = 1, failure = 'timeout'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+        assert result.resolution == "contest"
+>       assert result.policy_rule == "fail_closed"
+E       AssertionError: assert 'R4' == 'fail_closed'
+E
+E         - fail_closed
+E         + R4
+
+tests\unit\test_safl_safety.py:51: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[malformed-booking_agent-research_agent-0.9-1] _
+
+incoming_role = 'booking_agent', existing_role = 'research_agent'
+inc_conf = 0.9, evidence = 1, failure = 'malformed'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[malformed-research_agent-booking_agent-0.1-1] _
+
+incoming_role = 'research_agent', existing_role = 'booking_agent'
+inc_conf = 0.1, evidence = 1, failure = 'malformed'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[malformed-ground_agent-ground_agent-0.9-5] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 5, failure = 'malformed'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[malformed-ground_agent-ground_agent-0.9-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 1, failure = 'malformed'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[malformed-ground_agent-ground_agent-0.7-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.7
+evidence = 1, failure = 'malformed'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+        assert result.resolution == "contest"
+>       assert result.policy_rule == "fail_closed"
+E       AssertionError: assert 'R4' == 'fail_closed'
+E
+E         - fail_closed
+E         + R4
+
+tests\unit\test_safl_safety.py:51: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[throttle-booking_agent-research_agent-0.9-1] _
+
+incoming_role = 'booking_agent', existing_role = 'research_agent'
+inc_conf = 0.9, evidence = 1, failure = 'throttle'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[throttle-research_agent-booking_agent-0.1-1] _
+
+incoming_role = 'research_agent', existing_role = 'booking_agent'
+inc_conf = 0.1, evidence = 1, failure = 'throttle'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[throttle-ground_agent-ground_agent-0.9-5] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 5, failure = 'throttle'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[throttle-ground_agent-ground_agent-0.9-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 1, failure = 'throttle'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[throttle-ground_agent-ground_agent-0.7-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.7
+evidence = 1, failure = 'throttle'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+        assert result.resolution == "contest"
+>       assert result.policy_rule == "fail_closed"
+E       AssertionError: assert 'R4' == 'fail_closed'
+E
+E         - fail_closed
+E         + R4
+
+tests\unit\test_safl_safety.py:51: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[run_budget-booking_agent-research_agent-0.9-1] _
+
+incoming_role = 'booking_agent', existing_role = 'research_agent'
+inc_conf = 0.9, evidence = 1, failure = 'run_budget'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[run_budget-research_agent-booking_agent-0.1-1] _
+
+incoming_role = 'research_agent', existing_role = 'booking_agent'
+inc_conf = 0.1, evidence = 1, failure = 'run_budget'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[run_budget-ground_agent-ground_agent-0.9-5] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 5, failure = 'run_budget'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'reject' == 'contest'
+E
+E         - contest
+E         + reject
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[run_budget-ground_agent-ground_agent-0.9-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.9
+evidence = 1, failure = 'run_budget'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:50: AssertionError
+_ test_adjudication_failure_contests_before_ranking_and_blocks_actions[run_budget-ground_agent-ground_agent-0.7-1] _
+
+incoming_role = 'ground_agent', existing_role = 'ground_agent', inc_conf = 0.7
+evidence = 1, failure = 'run_budget'
+
+    @pytest.mark.parametrize("incoming_role,existing_role,inc_conf,evidence", [
+        ("booking_agent", "research_agent", 0.9, 1),  # R1 supersede on baseline
+        ("research_agent", "booking_agent", 0.1, 1),  # R1 reject
+        ("ground_agent", "ground_agent", 0.9, 5),     # R2 reject
+        ("ground_agent", "ground_agent", 0.9, 1),     # R3 supersede
+        ("ground_agent", "ground_agent", 0.7, 1),     # R4 contest control
+    ])
+    @pytest.mark.parametrize("failure", ["offline", "timeout", "malformed", "throttle", "run_budget"])
+    def test_adjudication_failure_contests_before_ranking_and_blocks_actions(
+            incoming_role, existing_role, inc_conf, evidence, failure):
+        old = atom(role=existing_role, evidence_count=evidence, visibility="workspace")
+        incoming = claim(role=incoming_role, confidence=inc_conf)
+        adj = Adjudicator(force_offline=True)
+        if failure != "offline":
+            adj.provider = BEDROCK  # No client creation or live invocation.
+        if failure == "run_budget":
+            adj.calls_this_run = adj.run_ceiling
+        errors = {"timeout": TimeoutError("synthetic timeout"),
+                  "throttle": RuntimeError("synthetic throttle")}
+        with patch.object(adj, "_invoke", side_effect=errors.get(failure),
+                          return_value=("not-json", 0, 0)) as invoke:
+            mem, store = memory([old], adjudicator=adj)
+            result = remember_with_neighbours(mem, incoming, [old])
+        assert result.error is None
+        assert result.resolution == "contest"
+>       assert result.policy_rule == "fail_closed"
+E       AssertionError: assert 'R4' == 'fail_closed'
+E
+E         - fail_closed
+E         + R4
+
+tests\unit\test_safl_safety.py:51: AssertionError
+__________ test_per_claim_budget_exhaustion_is_not_authority_ranking __________
+
+    def test_per_claim_budget_exhaustion_is_not_authority_ranking():
+        old = atom()
+        first = atom(index=2, subject_key="trip:1:other.fact")
+        adj = Adjudicator(force_offline=True, per_claim_budget=1)
+        adj.provider = BEDROCK
+        with patch.object(adj, "_invoke", return_value=(
+                '{"verdict":"unrelated","confidence":1,"rationale":"synthetic control"}', 0, 0)) as invoke:
+            mem, store = memory([first, old], adjudicator=adj)
+            result = remember_with_neighbours(mem, claim(), [first, old])
+        assert invoke.call_count == 1
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:76: AssertionError
+__ test_explicit_force_contest_precedes_prepared_or_structural_verdict[None] __
+
+prepared_verdict = None
+
+    @pytest.mark.parametrize("prepared_verdict", [None, "agreement", "refinement", "unrelated"])
+    def test_explicit_force_contest_precedes_prepared_or_structural_verdict(prepared_verdict):
+        old = atom()
+        mem, store = memory([old])
+        prepared = PreparedDecision("[1]")
+        if prepared_verdict:
+            prepared.verdicts[old.id] = (prepared_verdict, "tier2_semantic", 0.995, 0)
+        with patch.object(mem, "_neighbourhood", return_value=[old]):
+            plan = mem._commit(store, claim(), prepared, uuid.UUID(int=999), {},
+                               force_contest=(old.id,))
+>       assert plan.resolution == "contest" and plan.policy_rule == "fail_closed"
+E       AssertionError: assert ('supersede' == 'contest'
+E
+E         - contest
+E         + supersede)
+
+tests\unit\test_safl_safety.py:92: AssertionError
+_ test_explicit_force_contest_precedes_prepared_or_structural_verdict[agreement] _
+
+prepared_verdict = 'agreement'
+
+    @pytest.mark.parametrize("prepared_verdict", [None, "agreement", "refinement", "unrelated"])
+    def test_explicit_force_contest_precedes_prepared_or_structural_verdict(prepared_verdict):
+        old = atom()
+        mem, store = memory([old])
+        prepared = PreparedDecision("[1]")
+        if prepared_verdict:
+            prepared.verdicts[old.id] = (prepared_verdict, "tier2_semantic", 0.995, 0)
+        with patch.object(mem, "_neighbourhood", return_value=[old]):
+            plan = mem._commit(store, claim(), prepared, uuid.UUID(int=999), {},
+                               force_contest=(old.id,))
+>       assert plan.resolution == "contest" and plan.policy_rule == "fail_closed"
+E       AssertionError: assert ('reinforce' == 'contest'
+E
+E         - contest
+E         + reinforce)
+
+tests\unit\test_safl_safety.py:92: AssertionError
+_ test_explicit_force_contest_precedes_prepared_or_structural_verdict[refinement] _
+
+prepared_verdict = 'refinement'
+
+    @pytest.mark.parametrize("prepared_verdict", [None, "agreement", "refinement", "unrelated"])
+    def test_explicit_force_contest_precedes_prepared_or_structural_verdict(prepared_verdict):
+        old = atom()
+        mem, store = memory([old])
+        prepared = PreparedDecision("[1]")
+        if prepared_verdict:
+            prepared.verdicts[old.id] = (prepared_verdict, "tier2_semantic", 0.995, 0)
+        with patch.object(mem, "_neighbourhood", return_value=[old]):
+            plan = mem._commit(store, claim(), prepared, uuid.UUID(int=999), {},
+                               force_contest=(old.id,))
+>       assert plan.resolution == "contest" and plan.policy_rule == "fail_closed"
+E       AssertionError: assert ('supersede' == 'contest'
+E
+E         - contest
+E         + supersede)
+
+tests\unit\test_safl_safety.py:92: AssertionError
+_ test_explicit_force_contest_precedes_prepared_or_structural_verdict[unrelated] _
+
+prepared_verdict = 'unrelated'
+
+    @pytest.mark.parametrize("prepared_verdict", [None, "agreement", "refinement", "unrelated"])
+    def test_explicit_force_contest_precedes_prepared_or_structural_verdict(prepared_verdict):
+        old = atom()
+        mem, store = memory([old])
+        prepared = PreparedDecision("[1]")
+        if prepared_verdict:
+            prepared.verdicts[old.id] = (prepared_verdict, "tier2_semantic", 0.995, 0)
+        with patch.object(mem, "_neighbourhood", return_value=[old]):
+            plan = mem._commit(store, claim(), prepared, uuid.UUID(int=999), {},
+                               force_contest=(old.id,))
+>       assert plan.resolution == "contest" and plan.policy_rule == "fail_closed"
+E       AssertionError: assert ('accept' == 'contest'
+E
+E         - contest
+E         + accept)
+
+tests\unit\test_safl_safety.py:92: AssertionError
+_____ test_reprepare_exhaustion_executes_production_fallback_and_contests _____
+
+    def test_reprepare_exhaustion_executes_production_fallback_and_contests():
+        from tests.safl_fixtures import direct_transaction
+        old = atom()
+        mem, store = memory([old], reprepare_max=1)
+        # Probe misses the neighbour; authoritative read sees it on both attempts.
+        with patch.object(mem, "_neighbourhood", side_effect=[[], [old], [], [old], [old]]), \
+             patch("quorum.memory.quorum.run_txn", side_effect=direct_transaction) as txn:
+            result = mem.remember(claim())
+        assert txn.call_count == 3
+>       assert result.resolution == "contest" and result.error is None
+E       AssertionError: assert ('supersede' == 'contest'
+E
+E         - contest
+E         + supersede)
+
+tests\unit\test_safl_safety.py:107: AssertionError
+________ test_uncertainty_on_one_neighbour_prevents_other_supersession ________
+
+    def test_uncertainty_on_one_neighbour_prevents_other_supersession():
+        uncertain = atom(index=1)
+        structural = atom(index=2, subject_key=claim().subject_key)
+        mem, store = memory([uncertain, structural])
+        result = remember_with_neighbours(mem, claim(), [structural, uncertain])
+>       assert result.resolution == "contest"
+E       AssertionError: assert 'supersede' == 'contest'
+E
+E         - contest
+E         + supersede
+
+tests\unit\test_safl_safety.py:131: AssertionError
+_ test_another_agents_private_value_cannot_justify_or_leak_into_action[active-naive] _
+
+mode = 'naive', status = 'active'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("status", ["active", "contested"])
+    def test_another_agents_private_value_cannot_justify_or_leak_into_action(mode, status):
+        old = atom(visibility="private", status=status)
+        store = RecordingStore([old])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+        ctx = AgentCtx("lodging-1", "lodging_agent", 3, visibility_scopes=())
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, ctx.agent_id, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:147: AssertionError
+_ test_another_agents_private_value_cannot_justify_or_leak_into_action[active-txn_only] _
+
+mode = 'txn_only', status = 'active'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("status", ["active", "contested"])
+    def test_another_agents_private_value_cannot_justify_or_leak_into_action(mode, status):
+        old = atom(visibility="private", status=status)
+        store = RecordingStore([old])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+        ctx = AgentCtx("lodging-1", "lodging_agent", 3, visibility_scopes=())
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, ctx.agent_id, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:147: AssertionError
+_ test_another_agents_private_value_cannot_justify_or_leak_into_action[active-quorum] _
+
+mode = 'quorum', status = 'active'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("status", ["active", "contested"])
+    def test_another_agents_private_value_cannot_justify_or_leak_into_action(mode, status):
+        old = atom(visibility="private", status=status)
+        store = RecordingStore([old])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+        ctx = AgentCtx("lodging-1", "lodging_agent", 3, visibility_scopes=())
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, ctx.agent_id, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:147: AssertionError
+_ test_another_agents_private_value_cannot_justify_or_leak_into_action[contested-naive] _
+
+mode = 'naive', status = 'contested'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("status", ["active", "contested"])
+    def test_another_agents_private_value_cannot_justify_or_leak_into_action(mode, status):
+        old = atom(visibility="private", status=status)
+        store = RecordingStore([old])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+        ctx = AgentCtx("lodging-1", "lodging_agent", 3, visibility_scopes=())
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, ctx.agent_id, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:147: AssertionError
+_ test_another_agents_private_value_cannot_justify_or_leak_into_action[contested-txn_only] _
+
+mode = 'txn_only', status = 'contested'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("status", ["active", "contested"])
+    def test_another_agents_private_value_cannot_justify_or_leak_into_action(mode, status):
+        old = atom(visibility="private", status=status)
+        store = RecordingStore([old])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+        ctx = AgentCtx("lodging-1", "lodging_agent", 3, visibility_scopes=())
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, ctx.agent_id, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:147: AssertionError
+_ test_another_agents_private_value_cannot_justify_or_leak_into_action[contested-quorum] _
+
+mode = 'quorum', status = 'contested'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("status", ["active", "contested"])
+    def test_another_agents_private_value_cannot_justify_or_leak_into_action(mode, status):
+        old = atom(visibility="private", status=status)
+        store = RecordingStore([old])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+        ctx = AgentCtx("lodging-1", "lodging_agent", 3, visibility_scopes=())
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, ctx.agent_id, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'blocked_contested' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + blocked_contested
+
+tests\unit\test_safl_safety.py:147: AssertionError
+____ test_hidden_private_atom_cannot_poison_or_enter_shared_action_payload ____
+
+    def test_hidden_private_atom_cannot_poison_or_enter_shared_action_payload():
+        hidden = atom(visibility="private", status="contested")
+        shared = atom(index=2, object_text="shared", object_json={"date":"2031-05-01"})
+        mem, store = memory([hidden, shared])
+        result = mem.act(Action(WS, "lodging-1", "synthetic_booking", {}, (KEY,)))
+>       assert result.allowed and result.justifying_atom_ids == (shared.id,)
+E       AssertionError: assert (False)
+E        +  where False = GateResult(gate_result='blocked_contested', justifying_atom_ids=(), executed=False, outcome='trip:1:hotel.checkin_date...'trip:1:hotel.checkin_date',), reason='trip:1:hotel.checkin_date is contested: SYNTHETIC-PRIVATE-2031-04-18 vs shared').allowed
+
+tests\unit\test_safl_safety.py:174: AssertionError
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[None-naive] _
+
+mode = 'naive', actor = None
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[None-txn_only] _
+
+mode = 'txn_only', actor = None
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[None-quorum] _
+
+mode = 'quorum', actor = None
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[-naive] _
+
+mode = 'naive', actor = ''
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[-txn_only] _
+
+mode = 'txn_only', actor = ''
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[-quorum] _
+
+mode = 'quorum', actor = ''
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[ \t-naive] _
+
+mode = 'naive', actor = ' \t'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[ \t-txn_only] _
+
+mode = 'txn_only', actor = ' \t'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[ \t-quorum] _
+
+mode = 'quorum', actor = ' \t'
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[123-naive] _
+
+mode = 'naive', actor = 123
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[123-txn_only] _
+
+mode = 'txn_only', actor = 123
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+_ test_missing_or_malformed_action_identity_is_rejected_before_queries[123-quorum] _
+
+mode = 'quorum', actor = 123
+
+    @pytest.mark.parametrize("mode", MODES)
+    @pytest.mark.parametrize("actor", [None, "", " \t", 123])
+    def test_missing_or_malformed_action_identity_is_rejected_before_queries(mode, actor):
+        # Dataclasses do not validate annotations; direct SDK inputs can be malformed.
+        store = RecordingStore([atom(visibility="private", agent=actor)])
+        mem = make_memory(mode, store, SyntheticEmbedder(),
+                          {"adjudicator": Adjudicator(force_offline=True)})
+>       with pytest.raises(ValueError, match="agent_id"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\unit\test_safl_safety.py:193: Failed
+___ test_malformed_owner_never_justifies_an_identified_agents_action[None] ____
+
+owner = None
+
+    @pytest.mark.parametrize("owner", [None, "", " \t", 123])
+    def test_malformed_owner_never_justifies_an_identified_agents_action(owner):
+        mem, store = memory([atom(visibility="private", agent=owner)])
+        result = mem.act(Action(WS, "valid-actor", "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:202: AssertionError
+_____ test_malformed_owner_never_justifies_an_identified_agents_action[] ______
+
+owner = ''
+
+    @pytest.mark.parametrize("owner", [None, "", " \t", 123])
+    def test_malformed_owner_never_justifies_an_identified_agents_action(owner):
+        mem, store = memory([atom(visibility="private", agent=owner)])
+        result = mem.act(Action(WS, "valid-actor", "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:202: AssertionError
+____ test_malformed_owner_never_justifies_an_identified_agents_action[ \t] ____
+
+owner = ' \t'
+
+    @pytest.mark.parametrize("owner", [None, "", " \t", 123])
+    def test_malformed_owner_never_justifies_an_identified_agents_action(owner):
+        mem, store = memory([atom(visibility="private", agent=owner)])
+        result = mem.act(Action(WS, "valid-actor", "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:202: AssertionError
+____ test_malformed_owner_never_justifies_an_identified_agents_action[123] ____
+
+owner = 123
+
+    @pytest.mark.parametrize("owner", [None, "", " \t", 123])
+    def test_malformed_owner_never_justifies_an_identified_agents_action(owner):
+        mem, store = memory([atom(visibility="private", agent=owner)])
+        result = mem.act(Action(WS, "valid-actor", "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:202: AssertionError
+__ test_unknown_visibility_is_not_shared_or_owner_readable[research-1-None] ___
+
+visibility = None, actor = 'research-1'
+
+    @pytest.mark.parametrize("visibility", [None, "PRIVATE", "unrecognized"])
+    @pytest.mark.parametrize("actor", ["research-1", "other-agent"])
+    def test_unknown_visibility_is_not_shared_or_owner_readable(visibility, actor):
+        mem, store = memory([atom(visibility=visibility)])
+        ctx = AgentCtx(actor, "research_agent", 4)
+>       assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+E       AssertionError: assert [Atom(id=UUID...istance=None)] == []
+E
+E         Left contains one more item: Atom(id=UUID('00000000-0000-0000-0000-000000000065'), workspace_id=UUID('00000000-0000-0000-0000-000000000001'), subje... evidence_count=1, valid_from=None, valid_to=None, superseded_by=None, status='active', visibility=None, distance=None)
+E         Use -v to get more diff
+
+tests\unit\test_safl_safety.py:219: AssertionError
+_ test_unknown_visibility_is_not_shared_or_owner_readable[research-1-PRIVATE] _
+
+visibility = 'PRIVATE', actor = 'research-1'
+
+    @pytest.mark.parametrize("visibility", [None, "PRIVATE", "unrecognized"])
+    @pytest.mark.parametrize("actor", ["research-1", "other-agent"])
+    def test_unknown_visibility_is_not_shared_or_owner_readable(visibility, actor):
+        mem, store = memory([atom(visibility=visibility)])
+        ctx = AgentCtx(actor, "research_agent", 4)
+>       assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+E       AssertionError: assert [Atom(id=UUID...istance=None)] == []
+E
+E         Left contains one more item: Atom(id=UUID('00000000-0000-0000-0000-000000000065'), workspace_id=UUID('00000000-0000-0000-0000-000000000001'), subje...ence_count=1, valid_from=None, valid_to=None, superseded_by=None, status='active', visibility='PRIVATE', distance=None)
+E         Use -v to get more diff
+
+tests\unit\test_safl_safety.py:219: AssertionError
+_ test_unknown_visibility_is_not_shared_or_owner_readable[research-1-unrecognized] _
+
+visibility = 'unrecognized', actor = 'research-1'
+
+    @pytest.mark.parametrize("visibility", [None, "PRIVATE", "unrecognized"])
+    @pytest.mark.parametrize("actor", ["research-1", "other-agent"])
+    def test_unknown_visibility_is_not_shared_or_owner_readable(visibility, actor):
+        mem, store = memory([atom(visibility=visibility)])
+        ctx = AgentCtx(actor, "research_agent", 4)
+>       assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+E       AssertionError: assert [Atom(id=UUID...istance=None)] == []
+E
+E         Left contains one more item: Atom(id=UUID('00000000-0000-0000-0000-000000000065'), workspace_id=UUID('00000000-0000-0000-0000-000000000001'), subje...count=1, valid_from=None, valid_to=None, superseded_by=None, status='active', visibility='unrecognized', distance=None)
+E         Use -v to get more diff
+
+tests\unit\test_safl_safety.py:219: AssertionError
+__ test_unknown_visibility_is_not_shared_or_owner_readable[other-agent-None] __
+
+visibility = None, actor = 'other-agent'
+
+    @pytest.mark.parametrize("visibility", [None, "PRIVATE", "unrecognized"])
+    @pytest.mark.parametrize("actor", ["research-1", "other-agent"])
+    def test_unknown_visibility_is_not_shared_or_owner_readable(visibility, actor):
+        mem, store = memory([atom(visibility=visibility)])
+        ctx = AgentCtx(actor, "research_agent", 4)
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, actor, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:221: AssertionError
+_ test_unknown_visibility_is_not_shared_or_owner_readable[other-agent-PRIVATE] _
+
+visibility = 'PRIVATE', actor = 'other-agent'
+
+    @pytest.mark.parametrize("visibility", [None, "PRIVATE", "unrecognized"])
+    @pytest.mark.parametrize("actor", ["research-1", "other-agent"])
+    def test_unknown_visibility_is_not_shared_or_owner_readable(visibility, actor):
+        mem, store = memory([atom(visibility=visibility)])
+        ctx = AgentCtx(actor, "research_agent", 4)
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, actor, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:221: AssertionError
+_ test_unknown_visibility_is_not_shared_or_owner_readable[other-agent-unrecognized] _
+
+visibility = 'unrecognized', actor = 'other-agent'
+
+    @pytest.mark.parametrize("visibility", [None, "PRIVATE", "unrecognized"])
+    @pytest.mark.parametrize("actor", ["research-1", "other-agent"])
+    def test_unknown_visibility_is_not_shared_or_owner_readable(visibility, actor):
+        mem, store = memory([atom(visibility=visibility)])
+        ctx = AgentCtx(actor, "research_agent", 4)
+        assert mem.recall("", agent=ctx, workspace_id=WS, subject_keys=[KEY]) == []
+        result = mem.act(Action(WS, actor, "synthetic_booking", {}, (KEY,)))
+>       assert result.gate_result == "blocked_missing"
+E       AssertionError: assert 'allowed' == 'blocked_missing'
+E
+E         - blocked_missing
+E         + allowed
+
+tests\unit\test_safl_safety.py:221: AssertionError
+________ test_two_missing_identities_do_not_grant_private_recall[None] ________
+
+missing_id = None
+
+    @pytest.mark.parametrize("missing_id", [None, "", " \t"])
+    def test_two_missing_identities_do_not_grant_private_recall(missing_id):
+        mem, _ = memory([atom(visibility="private", agent=missing_id)])
+>       assert mem.recall("", agent=AgentCtx(missing_id, "research_agent", 4),
+                          workspace_id=WS, subject_keys=[KEY]) == []
+E       AssertionError: assert [Atom(id=UUID...istance=None)] == []
+E
+E         Left contains one more item: Atom(id=UUID('00000000-0000-0000-0000-000000000065'), workspace_id=UUID('00000000-0000-0000-0000-000000000001'), subje...ence_count=1, valid_from=None, valid_to=None, superseded_by=None, status='active', visibility='private', distance=None)
+E         Use -v to get more diff
+
+tests\unit\test_safl_safety.py:228: AssertionError
+__________ test_two_missing_identities_do_not_grant_private_recall[] __________
+
+missing_id = ''
+
+    @pytest.mark.parametrize("missing_id", [None, "", " \t"])
+    def test_two_missing_identities_do_not_grant_private_recall(missing_id):
+        mem, _ = memory([atom(visibility="private", agent=missing_id)])
+>       assert mem.recall("", agent=AgentCtx(missing_id, "research_agent", 4),
+                          workspace_id=WS, subject_keys=[KEY]) == []
+E       AssertionError: assert [Atom(id=UUID...istance=None)] == []
+E
+E         Left contains one more item: Atom(id=UUID('00000000-0000-0000-0000-000000000065'), workspace_id=UUID('00000000-0000-0000-0000-000000000001'), subje...ence_count=1, valid_from=None, valid_to=None, superseded_by=None, status='active', visibility='private', distance=None)
+E         Use -v to get more diff
+
+tests\unit\test_safl_safety.py:228: AssertionError
+________ test_two_missing_identities_do_not_grant_private_recall[ \t] _________
+
+missing_id = ' \t'
+
+    @pytest.mark.parametrize("missing_id", [None, "", " \t"])
+    def test_two_missing_identities_do_not_grant_private_recall(missing_id):
+        mem, _ = memory([atom(visibility="private", agent=missing_id)])
+>       assert mem.recall("", agent=AgentCtx(missing_id, "research_agent", 4),
+                          workspace_id=WS, subject_keys=[KEY]) == []
+E       AssertionError: assert [Atom(id=UUID...istance=None)] == []
+E
+E         Left contains one more item: Atom(id=UUID('00000000-0000-0000-0000-000000000065'), workspace_id=UUID('00000000-0000-0000-0000-000000000001'), subje...ence_count=1, valid_from=None, valid_to=None, superseded_by=None, status='active', visibility='private', distance=None)
+E         Use -v to get more diff
+
+tests\unit\test_safl_safety.py:228: AssertionError
+__ test_forced_policy_bypasses_ranking_without_any_store_fixture[agreement] ___
+
+verdict = 'agreement'
+
+    @pytest.mark.parametrize("verdict", ["agreement", "refinement", "contradiction", "unrelated"])
+    def test_forced_policy_bypasses_ranking_without_any_store_fixture(verdict):
+        from quorum.policy.engine import resolve
+        old = atom()
+        with patch("quorum.policy.engine.resolve_pair", side_effect=AssertionError("ranking must not run")):
+>           plan = resolve(claim(), [(old, verdict, "tier2_semantic", 0.99, 0)],
+                           force_contest={old.id:"fail-closed: synthetic explicit reason"})
+E           TypeError: resolve() got an unexpected keyword argument 'force_contest'
+
+tests\unit\test_safl_safety.py:244: TypeError
+__ test_forced_policy_bypasses_ranking_without_any_store_fixture[refinement] __
+
+verdict = 'refinement'
+
+    @pytest.mark.parametrize("verdict", ["agreement", "refinement", "contradiction", "unrelated"])
+    def test_forced_policy_bypasses_ranking_without_any_store_fixture(verdict):
+        from quorum.policy.engine import resolve
+        old = atom()
+        with patch("quorum.policy.engine.resolve_pair", side_effect=AssertionError("ranking must not run")):
+>           plan = resolve(claim(), [(old, verdict, "tier2_semantic", 0.99, 0)],
+                           force_contest={old.id:"fail-closed: synthetic explicit reason"})
+E           TypeError: resolve() got an unexpected keyword argument 'force_contest'
+
+tests\unit\test_safl_safety.py:244: TypeError
+_ test_forced_policy_bypasses_ranking_without_any_store_fixture[contradiction] _
+
+verdict = 'contradiction'
+
+    @pytest.mark.parametrize("verdict", ["agreement", "refinement", "contradiction", "unrelated"])
+    def test_forced_policy_bypasses_ranking_without_any_store_fixture(verdict):
+        from quorum.policy.engine import resolve
+        old = atom()
+        with patch("quorum.policy.engine.resolve_pair", side_effect=AssertionError("ranking must not run")):
+>           plan = resolve(claim(), [(old, verdict, "tier2_semantic", 0.99, 0)],
+                           force_contest={old.id:"fail-closed: synthetic explicit reason"})
+E           TypeError: resolve() got an unexpected keyword argument 'force_contest'
+
+tests\unit\test_safl_safety.py:244: TypeError
+__ test_forced_policy_bypasses_ranking_without_any_store_fixture[unrelated] ___
+
+verdict = 'unrelated'
+
+    @pytest.mark.parametrize("verdict", ["agreement", "refinement", "contradiction", "unrelated"])
+    def test_forced_policy_bypasses_ranking_without_any_store_fixture(verdict):
+        from quorum.policy.engine import resolve
+        old = atom()
+        with patch("quorum.policy.engine.resolve_pair", side_effect=AssertionError("ranking must not run")):
+>           plan = resolve(claim(), [(old, verdict, "tier2_semantic", 0.99, 0)],
+                           force_contest={old.id:"fail-closed: synthetic explicit reason"})
+E           TypeError: resolve() got an unexpected keyword argument 'force_contest'
+
+tests\unit\test_safl_safety.py:244: TypeError
+______ test_prepare_retains_failure_reason_from_real_offline_adjudicator ______
+
+    def test_prepare_retains_failure_reason_from_real_offline_adjudicator():
+        old = atom()
+        mem, _ = memory([old])
+        with patch.object(mem, "_neighbourhood", return_value=[old]):
+            prepared = mem._prepare(claim())
+>       assert prepared.failed_closed == {old.id:"fail-closed: no tier-2 adjudicator configured (offline stub)"}
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'PreparedDecision' object has no attribute 'failed_closed'
+
+tests\unit\test_safl_safety.py:257: AttributeError
+69 failed, 14 passed in 1.46s
